@@ -208,22 +208,27 @@ void subtract (void)
 void expression (void)
 {
     term ();
-    emitline ((char *) "MOV   R1,    R0");
+    
+    while ((lookahead == '+') ||
+           (lookahead == '-'))
+    {
+        emitline ((char *) "MOV   R1,    R0");
 
-	switch (lookahead)
-	{
-		case '+':
-			add ();
-			break;
+        switch (lookahead)
+        {
+            case '+':
+                add ();
+                break;
 
-		case '-':
-			subtract ();
-			break;
+            case '-':
+                subtract ();
+                break;
 
-		default:
-			expected ((char *) "add operation");
-			break;
-	}
+            default:
+                expected ((char *) "add operation");
+                break;
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

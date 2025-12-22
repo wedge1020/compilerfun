@@ -16,8 +16,9 @@ lookahead=                   ## lookahead character
 ##
 function getsymbol()
 {
-    read -r -s -n 1 input
-	lookahead="${input}"
+	lookahead=$(./fgetc.c)
+    #read -r -s -n 1 input
+    #lookahead="${input}"
 }
                               
 ########################################################################################
@@ -100,7 +101,7 @@ function isnumber()
         result="TRUE"
     fi
 
-    printf "${result}"
+    printf "${result}\n"
 }
 
 ########################################################################################
@@ -135,6 +136,10 @@ function getnumber()
 
     result="${lookahead}"
     getsymbol
+	echo "getnumber" >> out
+	echo "---------------" >> out
+	echo "result:    ${result}" >> out
+	echo "lookahead: ${lookahead}" >> out
 
     printf "${result}"
 }
@@ -203,19 +208,21 @@ function subtract()
 function expression()
 {
     term
-    emitline "MOV   R1,    R0"
-	getsymbol
-    case "${lookahead}" in
-        "+")
-            add
-            ;;
-        "-")
-            subtract
-            ;;
-        *)
-            expected "addop"
-            ;;
-    esac
+	#getsymbol
+    while [ "${lookahead}" = "+" ] || [ "${lookahead}" = "-" ]; do
+        emitline "MOV   R1,    R0"
+        case "${lookahead}" in
+            "+")
+                add
+                ;;
+            "-")
+                subtract
+                ;;
+            *)
+                expected "addop"
+                ;;
+        esac
+    done
 }
 
 ########################################################################################
@@ -231,6 +238,7 @@ function initialize()
 ##
 ## where we start
 ##
+echo -n > out
 initialize
 expression
 
