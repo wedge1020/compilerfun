@@ -198,6 +198,7 @@ void subtract (void)
     match ('-');
     term ();
     emitline ((char *) "ISUB  R0,    R1");
+    emitline ((char *) "ISGN  R0");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

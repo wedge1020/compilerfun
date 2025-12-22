@@ -193,6 +193,7 @@ function subtract()
     match "-"
     term
     emitline "ISUB  R0,    R1"
+    emitline "ISGN  R0"
 }
 
 ########################################################################################
