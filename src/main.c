@@ -168,7 +168,7 @@ void emitline (uint8_t *msg)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// term(): parse and translate a math expression
+// term(): parse and translate a math term
 //
 void term (void)
 {

@@ -8,7 +8,8 @@
 ##
 ## Declare global variables
 ##
-lookahead=                   ## lookahead character
+TMPFILE=$(mktemp -p /tmp v32cc.XXXX) ## temporary file
+lookahead=                           ## lookahead character
 
 ########################################################################################
 ##
@@ -16,15 +17,30 @@ lookahead=                   ## lookahead character
 ##
 function getsymbol()
 {
-	printf "%s\n" "$(./fgetc.c)"
-	#lookahead=$(./fgetc.c)
-	#if [ "${lookahead}" = "+" ]; then
-	#	lookahead="T_PLUS"
-	#elif [ "${lookahead}" = "-" ]; then
-	#	lookahead="T_MINUS"
-	#fi
-    #read -r -s -n 1 input
-    #lookahead="${input}"
+    ####################################################################################
+    ##
+    ## check if we have exhausted our line-buffered input, obtain more if needed
+    ##
+    lineinput=$(cat ${TMPFILE})
+#    if [ -z "${lineinput}" ]; then
+#        read lineinput
+#        echo "${lineinput}"                                         >  ${TMPFILE}
+#    fi
+
+    ####################################################################################
+    ##
+    ## obtain the next character from our input into `lookahead` and display it to
+    ## STDOUT.
+    ##
+    lookahead=$(echo "${lineinput}" | cut -c1)
+    echo "${lookahead}"                                             >  ${TMPFILE}.look
+
+    ####################################################################################
+    ##
+    ## update `lineinput` to omit the recently-stored character in `lookahead`
+    ##
+    lineinput=$(echo "${lineinput}" | cut -c2-)
+    echo "${lineinput}"                                             >  ${TMPFILE}
 }
                               
 ########################################################################################
@@ -65,10 +81,11 @@ function expected()
 ##
 function match()
 {
+    lookahead=$(cat ${TMPFILE}.look)
     symbol="${1}"
 
     if [ "${lookahead}" = "${symbol}" ]; then
-		lookahead=$(getsymbol)
+        getsymbol
     else
         expected "${symbol}"
     fi
@@ -80,11 +97,10 @@ function match()
 ##
 function issymbol()
 {
-    symbol="${1}"
+    lookahead=$(cat ${TMPFILE}.look)
     result="FALSE"
 
-    alphachk=$(echo "${symbol}" | grep '^[A-Za-z]$' | wc -l)
-
+    alphachk=$(echo "${lookahead}" | grep '^[A-Za-z]$' | wc -l)
     if [ "${alphachk}" -eq 1 ]; then
         result="TRUE"
     fi
@@ -98,11 +114,10 @@ function issymbol()
 ##
 function isnumber()
 {
-    symbol="${1}"
+    lookahead=$(cat ${TMPFILE}.look)
     result="FALSE"
 
-    numberchk=$(echo "${symbol}" | grep '^[0-9]$' | wc -l)
-
+    numberchk=$(echo "${lookahead}" | grep '^[0-9]$' | wc -l)
     if [ "${numberchk}" -eq 1 ]; then
         result="TRUE"
     fi
@@ -116,16 +131,17 @@ function isnumber()
 ##
 function getname()
 {
-    namechk=$(issymbol "${lookahead}")
+    lookahead=$(cat ${TMPFILE}.look)
+    namechk=$(issymbol)
 
     if [ "${namechk}" = "FALSE" ]; then
         expected "name"
     fi
 
     result="${lookahead}"
-	lookahead=$(getsymbol)
+    getsymbol
 
-    printf "${result}"
+    printf "${result}\n"
 }
 
 ########################################################################################
@@ -134,20 +150,34 @@ function getname()
 ##
 function getnumber()
 {
-    numberchk=$(isnumber "${lookahead}")
+    ####################################################################################
+    ##
+    ## declare local variables
+    ##
+    lookahead=$(cat "${TMPFILE}.look")
 
+    ####################################################################################
+    ##
+    ## determine if `lookahead` is a number; if not, error out
+    ##
+    numberchk=$(isnumber)
     if [ "${numberchk}" = "FALSE" ]; then
         expected "integer"
+        exit 1
     fi
 
+    ####################################################################################
+    ##
+    ## if `lookahead` is a number, store it, and obtain the next value
+    ##
     result="${lookahead}"
-	lookahead=$(getsymbol)
-	echo "getnumber" >> out
-	echo "---------------" >> out
-	echo "result:    ${result}" >> out
-	echo "lookahead: ${lookahead}" >> out
+    getsymbol
 
-    printf "${result}"
+    ####################################################################################
+    ##
+    ## display the result to STDOUT
+    ##
+    echo "${result}"
 }
 
 ########################################################################################
@@ -173,15 +203,14 @@ function emitline()
 
 ########################################################################################
 ##
-## term(): parse and translate a math expression
+## term(): parse and translate a math term
 ##
 function term()
 {
+    lookahead=$(cat ${TMPFILE}.look)
     number="$(getnumber)"
-    if [ ! -z "${number}" ]; then
-        msg="MOV   R0,    ${number}"
-        emitline "${msg}"
-    fi
+    msg="MOV   R0,    ${number}"
+    emitline "${msg}"
 }
 
 ########################################################################################
@@ -190,7 +219,7 @@ function term()
 ##
 function add()
 {
-    match "T_PLUS"
+    match "+"
     term
     emitline "IADD  R0,    R1"
 }
@@ -201,7 +230,7 @@ function add()
 ##
 function subtract()
 {
-    match "T_MINUS"
+    match "-"
     term
     emitline "ISUB  R0,    R1"
     emitline "ISGN  R0"
@@ -213,8 +242,9 @@ function subtract()
 ##
 function expression()
 {
+    lookahead=$(cat ${TMPFILE}.look)
     term
-	#getsymbol
+    lookahead=$(cat ${TMPFILE}.look)
     while [ "${lookahead}" = "+" ] || [ "${lookahead}" = "-" ]; do
         emitline "MOV   R1,    R0"
         case "${lookahead}" in
@@ -228,6 +258,7 @@ function expression()
                 expected "addop"
                 ;;
         esac
+        lookahead=$(cat ${TMPFILE}.look)
     done
 }
 
@@ -237,15 +268,18 @@ function expression()
 ##
 function initialize()
 {
-	lookahead=$(getsymbol)
+    touch ${TMPFILE}
+    read lineinput
+    echo "${lineinput}"                                         >  ${TMPFILE}
+    getsymbol
 }
 
 ########################################################################################
 ##
 ## where we start
 ##
-echo -n > out
 initialize
 expression
+rm -f ${TMPFILE} ${TMPFILE}.look
 
 exit 0
