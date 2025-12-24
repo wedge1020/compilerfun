@@ -214,6 +214,16 @@ function emitline()
     printf "\n"
 }
 
+########################################################################################
+##
+## emitlabel(): output a string as a label
+##
+function emitlabel()
+{
+    msg="${1}"
+    printf "%s:\n" "${msg}"
+}
+
 
 ########################################################################################
 ##
@@ -289,16 +299,40 @@ function term()
 
 ########################################################################################
 ##
+## ident(): parse and translate an identifier
+##
+function ident()
+{
+    lookahead=$(cat ${TMPFILE}.look)
+    name=$(getname)
+
+    if [ "${lookahead}" = '(' ]; then
+        match '('
+        match ')'
+        emitline "CALL  ${name}"
+    else
+        emitline "CALL  fhack"
+        emitlabel "fhack"
+        emitline "POP   R1"
+        emitline "LEA   R0,    [R1+$(getname)]"
+    fi
+}
+
+########################################################################################
+##
 ## factor(): parse and translate a math factor
 ##
 function factor()
 {
     lookahead=$(cat ${TMPFILE}.look)
+    lookchk=$(issymbol)
 
     if [ "${lookahead}" = '(' ]; then
         match '('
         expression
         match ')'
+    elif [ "${lookchk}" = "TRUE" ]; then
+        ident
     else
         number="$(getnumber)"
         msg="MOV   R0,    ${number}"

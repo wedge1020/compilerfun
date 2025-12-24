@@ -66,9 +66,9 @@ fhack:
     LEA   R0,    [R1+X]
 ```
 
-This gives  us access to  the program counter,  and assuming we  need the
-ADDRESS  at  that offset  location,  this  might  actually be  a  perfect
-application of the `LEA` instruction.
+This gives us access to the current value of the Instruction Pointer, and
+assuming we need the ADDRESS at that offset location, this might actually
+be a perfect application of the `LEA` instruction.
 
 Should  we  actually  need  the information  AT  that  calculated  memory
 address, we just add another `MOV`, dereferencing R0.

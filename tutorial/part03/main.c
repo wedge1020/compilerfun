@@ -193,20 +193,24 @@ void emitlabel (uint8_t *msg)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// factor(): parse and translate a math factor
+// ident(): parse and translate an identifier
 //
-void factor (void)
+void ident (void)
 {
+    uint8_t  name  = '\0';
     uint8_t  str[32];
+
+    name           = getname ();
 
     if (lookahead == '(')
     {
         match ('(');
-        expression ();
         match (')');
+        sprintf ((char *) str, "CALL  %s", name); 
+        emitline (str);
     }
-	else if (isalpha (lookahead) == TRUE)
-	{
+    else
+    {
         sprintf ((char *) str, "CALL  fhack");
         emitline (str);
         sprintf ((char *) str, "fhack");
@@ -215,7 +219,27 @@ void factor (void)
         emitline (str);
         sprintf ((char *) str, "LEA   R0,    [R1+%c]", getname ());
         emitline (str);
-	}
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+// factor(): parse and translate a math factor
+//
+void factor (void)
+{
+    uint8_t  str[32];
+
+    if (lookahead                 == '(')
+    {
+        match ('(');
+        expression ();
+        match (')');
+    }
+    else if (issymbol (lookahead) == TRUE)
+    {
+        ident ();
+    }
     else
     {
         sprintf ((char *) str, "MOV   R0,    %c", getnumber ());
