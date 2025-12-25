@@ -312,10 +312,6 @@ void term (void)
             case '%':
                 modulus ();
                 break;
-
-            default:
-                expected ((char *) "multiply operation");
-                break;
         }
     }
 }
@@ -373,10 +369,6 @@ void expression (void)
             case '-':
                 subtract ();
                 break;
-
-            default:
-                expected ((char *) "add operation");
-                break;
         }
     }
 }
@@ -398,6 +390,10 @@ int32_t  main ()
 {
     initialize ();
     expression ();
+    if (lookahead != '\n')
+    {
+        expected ((char *) "newline");
+    }
 
     return (0);
 }

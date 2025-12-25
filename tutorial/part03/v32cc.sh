@@ -288,9 +288,6 @@ function term()
             '%')
                 modulus
                 ;;
-            *)
-                expected "multiply operation"
-                ;;
         esac
         lookahead=$(cat ${TMPFILE}.look)
         multopchk=$(echo "${lookahead}" | grep -q '[*/%]' && echo "TRUE" || echo "FALSE")
@@ -391,9 +388,6 @@ function expression()
             "-")
                 subtract
                 ;;
-            *)
-                expected "addition operation"
-                ;;
         esac
         lookahead=$(cat ${TMPFILE}.look)
         addopchk=$(isaddop)
@@ -418,6 +412,9 @@ function initialize()
 ##
 initialize
 expression
+if [ ! "${alookahead}" = '\n' ]; then
+    expected "newline"
+
 rm -f ${TMPFILE} ${TMPFILE}.look
 
 exit 0
