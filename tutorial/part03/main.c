@@ -375,6 +375,31 @@ void expression (void)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
+// assignment(): parse and translate an assignment statement
+//
+void assignment (void)
+{
+    uint8_t  name  = '\0';
+    uint8_t  str[32];
+
+    name           = getname ();
+
+    match ('=');
+    expression ();
+
+    sprintf ((char *) str, "CALL  fhack2");
+    emitline (str);
+    sprintf ((char *) str, "fhack2");
+    emitlabel (str);
+    sprintf ((char *) str, "POP   R2");
+    emitline (str);
+    sprintf ((char *) str, "LEA   R1,    [R2+%c]", name);
+    emitline (str);
+    emitline ((char *) "MOV   R0,    [R1]");
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
 // initialize(): initialize everything
 //
 void initialize (void)

@@ -396,6 +396,24 @@ function expression()
 
 ########################################################################################
 ##
+## assignment(): parse and translate an assignment statement
+##
+function assignment ()
+{
+    name=$(getname)
+
+    match '='
+    expression;
+
+    emitline  "CALL  fhack2"
+    emitlabel "fhack2"
+    emitline  "POP   R2"
+    emitline  "LEA   R1,    [R2+${name}]"
+    emitline  "MOV   R0,    [R1]"
+}
+
+########################################################################################
+##
 ## initialize(): initialize everything
 ##
 function initialize()
