@@ -10,7 +10,7 @@
 // Declare global variables
 //
 uint8_t     lookahead; // lookahead character
-                              
+
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 // getsymbol(): obtain character from input stream
@@ -19,7 +19,7 @@ void getsymbol (void)
 {
    lookahead  = fgetc (stdin);
 }
-                              
+
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 // showerror(): report an error
@@ -97,12 +97,29 @@ uint8_t  isnumber (uint8_t symbol)
     uint8_t  status  = FALSE;
 
     if ((symbol     >= '0')  &&
-         (symbol    <= '9')) 
+         (symbol    <= '9'))
     {
         status       = TRUE;
     }
 
     return (status);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+// isnumber(): recognize a decimal digit
+//
+uint8_t  issymnum (uint8_t  symbol)
+{
+    uint8_t  result         = FALSE;
+
+    if ((issymbol (symbol) == TRUE) ||
+        (isnumber (symbol) == TRUE))
+    {
+        result              = TRUE;
+    }
+
+    return (result);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -125,42 +142,50 @@ uint8_t  isaddop (uint8_t  symbol)
 //
 // getname(): get an identifier
 //
-uint8_t  getname (void)
+uint8_t *getname (void)
 {
-    uint8_t  value            = '\0';
-    uint8_t  str[5];
+    uint8_t  index               = 0;
+    uint8_t  token[64];
 
-    if (issymbol (lookahead) == FALSE)
+    if (issymbol (lookahead)    == FALSE)
     {
-        sprintf ((char *) str, "%s", "name");
-        expected (str);
+        sprintf ((char *) token, "%s", "name");
+        expected (token);
     }
 
-    value                     = lookahead;
-    getsymbol ();
+    while (issymnum (lookahead) == TRUE)
+    {
+        token[index]             = lookahead;
+        index                    = index + 1;
+        getsymbol ();
+    }
 
-    return (value); 
+    return (token);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 // getnumber(): get a number
 //
-uint8_t  getnumber (void)
+uint8_t *getnumber (void)
 {
-    uint8_t  value            = '\0';
-    uint8_t  str[8];
+    uint8_t  index               = 0;
+    uint8_t  value[64];
 
-    if (isnumber (lookahead) == FALSE)
+    if (isnumber (lookahead)    == FALSE)
     {
-        sprintf ((char *) str, "%s", "integer");
-        expected (str);
+        sprintf ((char *) value, "%s", "integer");
+        expected (value);
     }
 
-    value                     = lookahead;
-    getsymbol ();
+    while (isnumber (lookahead) == TRUE)
+    {
+        value[index]             = lookahead;
+        index                    = index + 1;
+        getsymbol ();
+    }
 
-    return (value); 
+    return (value);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -197,7 +222,7 @@ void emitlabel (uint8_t *msg)
 //
 void ident (void)
 {
-    uint8_t  name  = '\0';
+    uint8_t *name  = NULL;
     uint8_t  str[32];
 
     name           = getname ();
@@ -206,7 +231,7 @@ void ident (void)
     {
         match ('(');
         match (')');
-        sprintf ((char *) str, "CALL  %c", name); 
+        sprintf ((char *) str, "CALL  %s", name);
         emitline (str);
     }
     else
@@ -217,7 +242,7 @@ void ident (void)
         emitlabel (str);
         sprintf ((char *) str, "POP   R1");
         emitline (str);
-        sprintf ((char *) str, "LEA   R0,    [R1+%c]", name);
+        sprintf ((char *) str, "LEA   R0,    [R1+%s]", name);
         emitline (str);
     }
 }
@@ -292,7 +317,7 @@ void modulus (void)
 void term (void)
 {
     factor ();
-    
+
     while ((lookahead == '*') ||
            (lookahead == '/') ||
            (lookahead == '%'))
@@ -355,7 +380,7 @@ void expression (void)
     {
         term ();
     }
-    
+
     while (isaddop (lookahead) == TRUE)
     {
         emitline ((char *) "PUSH  R0");
@@ -379,7 +404,7 @@ void expression (void)
 //
 void assignment (void)
 {
-    uint8_t  name  = '\0';
+    uint8_t *name  = NULL;
     uint8_t  str[32];
 
     name           = getname ();
@@ -393,7 +418,7 @@ void assignment (void)
     emitlabel (str);
     sprintf ((char *) str, "POP   R2");
     emitline (str);
-    sprintf ((char *) str, "LEA   R1,    [R2+%c]", name);
+    sprintf ((char *) str, "LEA   R1,    [R2+%s]", name);
     emitline (str);
     emitline ((char *) "MOV   [R1],  R0");
 }

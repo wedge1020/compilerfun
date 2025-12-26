@@ -42,7 +42,7 @@ function getsymbol()
     lineinput=$(echo "${lineinput}" | cut -c2-)
     echo "${lineinput}"                                             >  ${TMPFILE}
 }
-                              
+
 ########################################################################################
 ##
 ## showerror(): report an error
@@ -97,11 +97,11 @@ function match()
 ##
 function issymbol()
 {
-    lookahead=$(cat ${TMPFILE}.look)
+    symbol="${1}"
     result="FALSE"
 
-    alphachk=$(echo "${lookahead}" | grep '^[A-Za-z]$' | wc -l)
-    if [ "${alphachk}" -eq 1 ]; then
+    symchk=$(echo "${symbol}" | grep '^[A-Za-z]$' | wc -l)
+    if [ "${symchk}" -eq 1 ]; then
         result="TRUE"
     fi
 
@@ -114,11 +114,30 @@ function issymbol()
 ##
 function isnumber()
 {
-    lookahead=$(cat ${TMPFILE}.look)
+    number="${1}"
     result="FALSE"
 
-    numberchk=$(echo "${lookahead}" | grep '^[0-9]$' | wc -l)
+    numberchk=$(echo "${number}" | grep '^[0-9]$' | wc -l)
     if [ "${numberchk}" -eq 1 ]; then
+        result="TRUE"
+    fi
+
+    echo "${result}"
+}
+
+########################################################################################
+##
+## issymnum(): recognize a decimal digit
+##
+function issymnum ()
+{
+    symbol="${1}"
+    result="FALSE"
+
+    symchk=$(issymbol "${symbol}")
+    numchk=$(isnumber "${symbol}")
+
+    if [ "${symchk}" = "TRUE" ] || [ "${numchk}" = "TRUE" ]; then
         result="TRUE"
     fi
 
@@ -145,16 +164,21 @@ function isaddop()
 function getname()
 {
     lookahead=$(cat ${TMPFILE}.look)
-    namechk=$(issymbol)
+    namechk=$(issymbol "${lookahead}")
+    token=
 
     if [ "${namechk}" = "FALSE" ]; then
         expected "name"
     fi
 
-    result="${lookahead}"
-    getsymbol
+    symnumchk=$(issymnum "${lookahead}")
+    while [ "${symnumchk}" = "TRUE" ]; do
+        token="${token}${lookahead}"
+        getsymbol
+        symnumchk=$(issymnum "${lookahead}")
+    done
 
-    printf "${result}\n"
+    echo "${token}"
 }
 
 ########################################################################################
@@ -168,29 +192,29 @@ function getnumber()
     ## declare local variables
     ##
     lookahead=$(cat "${TMPFILE}.look")
+    value=
 
     ####################################################################################
     ##
     ## determine if `lookahead` is a number; if not, error out
     ##
-    numberchk=$(isnumber)
+    numberchk=$(isnumber "${lookahead}")
     if [ "${numberchk}" = "FALSE" ]; then
         expected "integer"
-        exit 1
     fi
 
     ####################################################################################
     ##
-    ## if `lookahead` is a number, store it, and obtain the next value
+    ## while `lookahead` is a number, append it, and obtain the next value
     ##
-    result="${lookahead}"
-    getsymbol
+    numchk=$(isnumber "${lookahead}")
+    while [ "${numchk}" = "TRUE" ]; do
+        value="${value}${lookahead}"
+        getsymbol
+        numchk=$(isnumber "${lookahead}")
+    done
 
-    ####################################################################################
-    ##
-    ## display the result to STDOUT
-    ##
-    echo "${result}"
+    echo "${value}"
 }
 
 ########################################################################################
@@ -211,7 +235,7 @@ function emitline()
 {
     msg="${1}"
     emit "${msg}"
-    printf "\n"
+    echo
 }
 
 ########################################################################################
@@ -322,7 +346,7 @@ function ident()
 function factor()
 {
     lookahead=$(cat ${TMPFILE}.look)
-    lookchk=$(issymbol)
+    lookchk=$(issymbol "${lookahead}")
 
     if [ "${lookahead}" = '(' ]; then
         match '('
