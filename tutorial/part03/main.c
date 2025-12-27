@@ -61,12 +61,29 @@ void match (uint8_t  symbol)
     if (lookahead == symbol)
     {
         getsymbol ();
+        skipwhitespace ();
     }
     else
     {
         sprintf ((char *) str, "%c", symbol);
         expected (str);
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+// iswhitespace(): recognize a whitespace character
+//
+uint8_t  iswhitespace (uint8_t  symbol)
+{
+    uint8_t  result  = FALSE;
+    if ((symbol     == ' ') ||
+        (symbol     == '\t'))
+    {
+        result       = TRUE;
+    }
+
+    return (result);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -140,6 +157,18 @@ uint8_t  isaddop (uint8_t  symbol)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
+// skipwhitespace(): skip over leading white space
+//
+void skipwhitespace (void)
+{
+    while (iswhitespace (lookahead) == TRUE)
+    {
+        getsymbol ();
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
 // getname(): get an identifier
 //
 uint8_t *getname (void)
@@ -159,6 +188,7 @@ uint8_t *getname (void)
         index                    = index + 1;
         getsymbol ();
     }
+    skipwhitespace ();
 
     return (token);
 }
@@ -184,6 +214,7 @@ uint8_t *getnumber (void)
         index                    = index + 1;
         getsymbol ();
     }
+    skipwhitespace ();
 
     return (value);
 }
@@ -430,6 +461,7 @@ void assignment (void)
 void initialize (void)
 {
     getsymbol ();
+	skipwhitespace ();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

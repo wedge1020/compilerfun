@@ -93,6 +93,21 @@ function match()
 
 ########################################################################################
 ##
+## iswhitespace(): recognize a whitespace character
+##
+function iswhitespace()
+{
+    result="FALSE"
+
+    if [ "${symbol}" = ' ' ] || [ "${symbol}" = '\t' ]; then
+        result="TRUE"
+    fi
+
+    echo "${result}"
+}
+
+########################################################################################
+##
 ## issymbol(): recognize an alpha character
 ##
 function issymbol()
@@ -155,6 +170,21 @@ function isaddop()
     result=$(printf -- "${lookahead}" | grep -q '[+-]' && echo "TRUE" || echo "FALSE")
 
     echo "${result}"
+}
+
+########################################################################################
+##
+## skipwhitespace(): skip over leading white space
+##
+function skipwhitespace ()
+{
+    lookahead=$(cat ${TMPFILE}.look)
+    whitespacechk=$(iswhitespace "${lookahead}")
+    while [ "${whitespacechk}" = "TRUE" ]; do
+        getsymbol
+        lookahead=$(cat ${TMPFILE}.look)
+        whitespacechk=$(iswhitespace "${lookahead}")
+    done
 }
 
 ########################################################################################
