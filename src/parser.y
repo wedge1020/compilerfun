@@ -1,10 +1,8 @@
-%glr-parser
-
 %{
     #include <stdio.h>
 
     int  yylex   (void);
-    int  yyerror (char *);
+    int  yyerror (const char *);
 %}
 
 %union {
@@ -14,7 +12,8 @@
 
 %token EOL
 %token<intval> INTEGER
-%token PLUS MINUS MULTIPLY DIVIDE MODULUS
+%token<floatval> FLOAT
+%token OPEN_PARENS CLOSE_PARENS MULTIPLY DIVIDE MODULUS PLUS MINUS
 %type<intval> expression
 
 %%
@@ -29,20 +28,22 @@ line:
     ;
 
 expression: INTEGER { $$ = $1; }
-          | expression PLUS     expression { $$ = $1 + $3; }
-          | expression MINUS    expression { $$ = $1 - $3; }
           | expression MULTIPLY expression { $$ = $1 * $3; }
           | expression DIVIDE   expression { $$ = $1 / $3; }
           | expression MODULUS  expression { $$ = $1 % $3; }
+          | expression PLUS     expression { $$ = $1 + $3; }
+          | expression MINUS    expression { $$ = $1 - $3; }
           ;
 
 %%
 
-int yyerror (char *yyerrtext) {
+int yyerror (const char *yyerrtext)
+{
     fprintf (stderr, "[ERROR] %s\n", yyerrtext);
     return (0);
 }
 
-int main () {
+int main ()
+{
     yyparse ();
 }
