@@ -13,8 +13,11 @@
 %token EOL
 %token<intval> INTEGER
 %token<floatval> FLOAT
-%token OPEN_PARENS CLOSE_PARENS MULTIPLY DIVIDE MODULUS PLUS MINUS
 %type<intval> expression
+%left '+' '-'     // Left-associative, lower precedence
+%left '*' '/' '%' // Left-associative, higher precedence
+%precedence UMINUS /* Unary minus (e.g., -5) */
+%precedence UPLUS  /* Unary plus  (e.g., +5) */
 
 %%
 
@@ -27,13 +30,17 @@ line:
     | EOL
     ;
 
-expression: INTEGER { $$ = $1; }
-          | expression MULTIPLY expression { $$ = $1 * $3; }
-          | expression DIVIDE   expression { $$ = $1 / $3; }
-          | expression MODULUS  expression { $$ = $1 % $3; }
-          | expression PLUS     expression { $$ = $1 + $3; }
-          | expression MINUS    expression { $$ = $1 - $3; }
-          ;
+expression:
+    INTEGER                       { $$ = $1;      }
+    | expression '+' expression   { $$ = $1 + $3; }
+    | expression '-' expression   { $$ = $1 - $3; }
+    | expression '*' expression   { $$ = $1 * $3; }
+    | expression '/' expression   { $$ = $1 / $3; }
+    | expression '%' expression   { $$ = $1 % $3; }
+    | '(' expression ')'          { $$ = $2;      } /* (P)arentheses */
+    | '-' expression %prec UMINUS { $$ = -$2;     } /* Context-dependent precedence */
+    | '+' expression %prec UMINUS { $$ = +$2;     } /* Context-dependent precedence */
+    ;
 
 %%
 
