@@ -3,14 +3,20 @@
 
 struct symbolrecord
 {
-    char                *name;
-    int                  value;
+    uint8_t             *name;
+    int32_t              type;
+    union
+    {
+        int32_t          intvalue;
+        float            floatvalue;
+        //func_t           functionptr;
+    } data;
     struct symbolrecord *next;
 };
 typedef struct symbolrecord symrec;
 
 extern symrec *symboltable;
-symrec *addsymbol (char const *, int);
-symrec *getsymbol (char const *);
+symrec *addsymbol (const uint8_t *, int32_t);
+symrec *getsymbol (const uint8_t *);
 
 #endif

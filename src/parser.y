@@ -1,5 +1,7 @@
 %{
     #include <stdio.h>
+    #include <stdint.h>
+    #include <stdlib.h>
     #include "symboltable.h"
 
     symrec *symboltable;
@@ -9,11 +11,11 @@
 %}
 
 %union {
-    int     intval;
-    int    *intptr;
-    float   floatval;
-    float  *floatptr;
-    void   *voidptr;
+    int32_t              intval;
+    int32_t             *intptr;
+    float                floatval;
+    float               *floatptr;
+    void                *voidptr;
     struct symbolrecord *tptr;
 }
 
@@ -39,23 +41,23 @@ line:
                                         if (tmp          == NULL)
                                             tmp           = addsymbol ($1 -> name, $3);
                                         else
-                                            tmp -> value  = $3;
-                                        fprintf (stdout, "[parser] %s = %d\n", tmp -> name, tmp -> value);
+                                            tmp -> data.intvalue  = $3;
+                                        fprintf (stdout, "[parser] %8s: %d\n", tmp -> name, tmp -> data.intvalue);
                                       }
     | EOL
     ;
 
 expression:
-    INTEGER                       { $$ = $1;          }
-    | VARIABLE                    { $$ = $1 -> value; } // Retrieve variable value
-    | expression '+' expression   { $$ = $1 + $3;     }
-    | expression '-' expression   { $$ = $1 - $3;     }
-    | expression '*' expression   { $$ = $1 * $3;     }
-    | expression '/' expression   { $$ = $1 / $3;     }
-    | expression '%' expression   { $$ = $1 % $3;     }
-    | '(' expression ')'          { $$ = $2;          } // (P)arentheses
-    | '+' expression %prec UMINUS { $$ = +$2;         } // Context-dependent precedence
-    | '-' expression %prec UMINUS { $$ = -$2;         } // Context-dependent precedence
+    INTEGER                       { $$ = $1;                  }
+    | VARIABLE                    { $$ = $1 -> data.intvalue; } // Retrieve variable value
+    | expression '+' expression   { $$ = $1 + $3;             }
+    | expression '-' expression   { $$ = $1 - $3;             }
+    | expression '*' expression   { $$ = $1 * $3;             }
+    | expression '/' expression   { $$ = $1 / $3;             }
+    | expression '%' expression   { $$ = $1 % $3;             }
+    | '(' expression ')'          { $$ = $2;                  } // (P)arentheses
+    | '+' expression %prec UMINUS { $$ = +$2;                 } // Context-dependent precedence
+    | '-' expression %prec UMINUS { $$ = -$2;                 } // Context-dependent precedence
     ;
 
 %%

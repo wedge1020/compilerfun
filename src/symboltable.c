@@ -4,7 +4,7 @@
 #include <string.h>
 #include "symboltable.h"
 
-symrec *addsymbol (char const *name, int value)
+symrec *addsymbol (const uint8_t *name, int32_t value)
 {
     symrec *tmp             = symboltable;
 
@@ -35,35 +35,35 @@ symrec *addsymbol (char const *name, int value)
         tmp                 = tmp -> next;
     }
 
-    fprintf (stdout, "[addsymbol] name length is: %lu\n", strlen (name));
-    tmp -> name             = (char *) calloc (strlen (name) + 1, sizeof (char));
+    fprintf (stdout, "[addsymbol] name length is: %lu\n", strlen ((const char *) name));
+    tmp -> name             = (uint8_t *) calloc (strlen ((const char *) name) + 1, sizeof (uint8_t));
     if (tmp -> name        == NULL)
     {
         fprintf (stderr, "[addsymbol] Could not calloc() for tmp -> name!\n");
         exit (4);
     }
-    tmp -> value            = value;
+    tmp -> data.intvalue    = value;
     tmp -> next             = NULL;
-    strncpy (tmp -> name, (char *) name, strlen (name));
+    strncpy ((char *) tmp -> name, (const char *) name, strlen ((const char *) name));
 
     return (tmp);
 }
 
-symrec *getsymbol (char const *name)
+symrec *getsymbol (const uint8_t *name)
 {
-    int     chk  = 0;
-    size_t  len  = 0;
-    symrec *tmp  = symboltable;
-    while (tmp  != NULL)
+    int32_t  chk  = 0;
+    size_t   len  = 0;
+    symrec  *tmp  = symboltable;
+    while (tmp   != NULL)
     {
-        len      = strlen (name);
-        chk      = strncmp (name, tmp -> name, len);
-        if (chk == 0)
+        len       = strlen ((const char *) name);
+        chk       = strncmp ((const char *) name, (char *) tmp -> name, len);
+        if (chk  == 0)
         {
             break;
         }
 
-        tmp      = tmp -> next;
+        tmp       = tmp -> next;
     }
 
     return (tmp);

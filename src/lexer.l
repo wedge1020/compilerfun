@@ -6,9 +6,9 @@
 %%
 
 0|[1-9][0-9]*          { yylval.intval    = atoi (yytext); return (INTEGER); }
-[a-zA-Z_][a-zA-Z0-9_]* { yylval.tptr      = getsymbol (yytext);
+[a-zA-Z_][a-zA-Z0-9_]* { yylval.tptr      = getsymbol ((uint8_t *) yytext);
                          if (yylval.tptr == NULL)
-                             yylval.tptr  = addsymbol (yytext, 0); // Create if new
+                             yylval.tptr  = addsymbol ((uint8_t *) yytext, 0); // Create if new
                          fprintf (stdout, "[lexer] yylval.tptr -> name is: %s\n", yylval.tptr -> name);
                          return (VARIABLE);
                        }
