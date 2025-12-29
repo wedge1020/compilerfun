@@ -9,7 +9,7 @@ struct symbolrecord
 };
 typedef struct symbolrecord symrec;
 
-symrec *symboltable;
+extern symrec *symboltable;
 symrec *addsymbol (char const *, int);
 symrec *getsymbol (char const *);
 

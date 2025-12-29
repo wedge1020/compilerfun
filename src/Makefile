@@ -65,18 +65,30 @@ endif
 $(BIN): lexfiles yaccfiles
 ifneq ($(MAKECMDGOALS),debug)
 	@printf "[\033[0;34m%s\033[0m]    %-28s -> %-28s ... "	  "$(CC)"        \
+															  "lex.yy.c"   \
+															  "lex.yy.o"
+	@$(CC) -c $(CFLAGS) lex.yy.c      2>  $(CC).errors && echo "\033[1;32mOK\033[0m"  \
+													   || (echo "\033[1;31mFAIL\033[0m" \
+													   && exit 1)
+	@printf "[\033[0;34m%s\033[0m]    %-28s -> %-28s ... "	  "$(CC)"        \
+															  "parser.tab.c"   \
+															  "parser.tab.o"
+	@$(CC) -c $(CFLAGS) parser.tab.c  2>> $(CC).errors && echo "\033[1;32mOK\033[0m"  \
+													   || (echo "\033[1;31mFAIL\033[0m" \
+													   && exit 1)
+	@printf "[\033[0;34m%s\033[0m]    %-28s -> %-28s ... "	  "$(CC)"        \
 															  "symboltable.c"   \
 															  "symboltable.o"
-	@$(CC) -c $(CFLAGS) symboltable.c 2>> $(CC).errors      && echo "\033[1;32mOK\033[0m"  \
-													  || (echo "\033[1;31mFAIL\033[0m" \
-													  && exit 1)
+	@$(CC) -c $(CFLAGS) symboltable.c 2>> $(CC).errors && echo "\033[1;32mOK\033[0m"  \
+													   || (echo "\033[1;31mFAIL\033[0m" \
+													   && exit 1)
 	@printf "[\033[0;34m%s\033[0m]    %-28s -> %-28s ... "	  "$(CC)"        \
 															  "*.o"   \
 															  "$(BIN)"
-	@$(CC)    $(CFLAGS) *.o lex.yy.c parser.tab.c -o $(BIN) 2>> $(CC).errors      && echo "\033[1;32mDONE\033[0m"  \
-													  || (echo "\033[1;31mFAIL\033[0m" \
-													  && exit 1)
-	@[ ! -s "$(CC).errors" ] && rm -f $(CC).errors    || echo -n
+	@$(CC)    $(CFLAGS) *.o -o $(BIN) 2>> $(CC).errors && echo "\033[1;32mDONE\033[0m"  \
+													   || (echo "\033[1;31mFAIL\033[0m" \
+													   && exit 1)
+	@[ ! -s "$(CC).errors" ] && rm -f $(CC).errors     || echo -n
 else
 	$(CC) -c $(CFLAGS) lex.yy.c                       || exit 1
 	$(CC) -c $(CFLAGS) parser.tab.c                   || exit 1
@@ -90,11 +102,4 @@ ifndef DEBUG
 endif
 
 clean:
-	@rm -f .*.sw[op] *.save* *~ *.errors *.debug *.o lex.yy.c parser.tab.c parser.tab.h
-ifneq ("$(wildcard $(BIN))","")
-	@printf "[\033[0;34m%s\033[0m]     %-36s\n" "$(CATEGORY)" \
-	                                            "removing output files"
-	@make -f Makefile.clean --no-print-directory
-	@echo
-endif
-	@echo -n
+	@rm -f .*.sw[op] *.save* *~ *.errors *.debug *.o lex.yy.c parser.tab.c parser.tab.h $(BIN)

@@ -4,6 +4,8 @@
 #include <string.h>
 #include "symboltable.h"
 
+symrec *symboltable;
+
 symrec *addsymbol (char const *name, int value)
 {
     symrec *tmp             = symboltable;
@@ -16,6 +18,7 @@ symrec *addsymbol (char const *name, int value)
             fprintf (stderr, "[addsymbol] Could not malloc() for symrec!\n");
             exit (2);
         }
+        symboltable         = tmp;
     }
     else
     {

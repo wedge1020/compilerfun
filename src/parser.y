@@ -12,7 +12,7 @@
     float   floatval;
     float  *floatptr;
     void   *voidptr;
-    symrec *tptr;
+    struct symbolrecord *tptr;
 }
 
 %token            EOL
@@ -60,5 +60,6 @@ int yyerror (const char *yyerrtext)
 
 int main ()
 {
+	symboltable  = NULL;
     yyparse ();
 }
