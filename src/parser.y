@@ -36,12 +36,11 @@ input:
 line:
     expression EOL                    { fprintf (stdout, "%d\n", $1); }
     | VARIABLE '=' expression ';' EOL { symrec *tmp = getsymbol ($1 -> name);
-                                        fprintf (stdout, "[vinit] VARIABLE is: %d\n", $3);
                                         if (tmp          == NULL)
                                             tmp           = addsymbol ($1 -> name, $3);
                                         else
                                             tmp -> value  = $3;
-                                        fprintf (stdout, "[var] %s = %d\n", tmp -> name, tmp -> value);
+                                        fprintf (stdout, "[parser] %s = %d\n", tmp -> name, tmp -> value);
                                       }
     | EOL
     ;
