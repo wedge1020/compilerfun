@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include "symboltable.h"
 
@@ -34,7 +37,7 @@ symrec *addsymbol (char const *name, int value)
     tmp -> name             = (char *) malloc (sizeof (char) * strlen (name));
     tmp -> value            = value;
     tmp -> next             = NULL;
-    memcpy (name, tmp -> name, strlen (name));
+    memcpy ((char *) name, tmp -> name, strlen (name));
 
     return (tmp);
 }
