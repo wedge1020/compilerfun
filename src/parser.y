@@ -1,6 +1,6 @@
 %{
     #include <stdio.h>
-	#include "symboltable.h"
+    #include "symboltable.h"
 
     int  yylex   (void);
     int  yyerror (const char *);
@@ -8,19 +8,22 @@
 
 %union {
     int     intval;
+    int    *intptr;
     float   floatval;
+    float  *floatptr;
+    void   *voidptr;
     symrec *tptr;
 }
 
-%token <tptr>     VARIABLE
 %token            EOL
+%token <tptr>     VARIABLE
 %token <intval>   INTEGER
 %token <floatval> FLOAT
 %type  <intval>   expression
-%left  '+' '-'     // Left-associative, lower precedence
-%left  '*' '/' '%' // Left-associative, higher precedence
-%precedence UMINUS /* Unary minus (e.g., -5) */
-%precedence UPLUS  /* Unary plus  (e.g., +5) */
+%left  '+' '-'               // Left-associative, lower precedence
+%left  '*' '/' '%'           // Left-associative, higher precedence
+%precedence UMINUS           // Unary minus
+%precedence UPLUS            // Unary plus
 
 %%
 
@@ -30,21 +33,21 @@ input:
 
 line:
     expression EOL                    { fprintf (stdout, "%d\n", $1); }
-	| VARIABLE '=' expression ';' EOL { $1 -> value = $3; fprintf (stdout, "\t%s = %.d\n", $1 -> name, $3); }
+    | VARIABLE '=' expression ';' EOL { $1 -> value = $3; fprintf (stdout, "\t%s = %.d\n", $1 -> name, $3); }
     | EOL
     ;
 
 expression:
     INTEGER                       { $$ = $1;          }
-	| VARIABLE                    { $$ = $1 -> value; } /* Retrieve variable value */
+    | VARIABLE                    { $$ = $1 -> value; } // Retrieve variable value
     | expression '+' expression   { $$ = $1 + $3;     }
     | expression '-' expression   { $$ = $1 - $3;     }
     | expression '*' expression   { $$ = $1 * $3;     }
     | expression '/' expression   { $$ = $1 / $3;     }
     | expression '%' expression   { $$ = $1 % $3;     }
-    | '(' expression ')'          { $$ = $2;          } /* (P)arentheses */
-    | '-' expression %prec UMINUS { $$ = -$2;         } /* Context-dependent precedence */
-    | '+' expression %prec UMINUS { $$ = +$2;         } /* Context-dependent precedence */
+    | '(' expression ')'          { $$ = $2;          } // (P)arentheses
+    | '+' expression %prec UMINUS { $$ = +$2;         } // Context-dependent precedence
+    | '-' expression %prec UMINUS { $$ = -$2;         } // Context-dependent precedence
     ;
 
 %%
