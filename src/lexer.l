@@ -9,7 +9,8 @@
 [a-zA-Z_][a-zA-Z0-9_]* { yylval.tptr      = getsymbol (yytext);
                          if (yylval.tptr == NULL)
                              yylval.tptr  = addsymbol (yytext, 0); // Create if new
-                             return (VARIABLE);
+                         fprintf (stdout, "yylval.tptr -> name is: %s\n", yylval.tptr -> name);
+                         return (VARIABLE);
                        }
 "="                    { return ('='); }
 ";"                    { return (';'); }
@@ -26,4 +27,7 @@
 
 %%
 
-int yywrap() { return (0); }
+int yywrap()
+{
+    return (0);
+}

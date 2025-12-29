@@ -2,6 +2,8 @@
     #include <stdio.h>
     #include "symboltable.h"
 
+    symrec *symboltable;
+
     int  yylex   (void);
     int  yyerror (const char *);
 %}
@@ -33,7 +35,14 @@ input:
 
 line:
     expression EOL                    { fprintf (stdout, "%d\n", $1); }
-    | VARIABLE '=' expression ';' EOL { $1 -> value = $3; fprintf (stdout, "\t%s = %.d\n", $1 -> name, $3); }
+    | VARIABLE '=' expression ';' EOL { symrec *tmp = getsymbol ($1 -> name);
+                                        fprintf (stdout, "[vinit] VARIABLE is: %d\n", $3);
+                                        if (tmp          == NULL)
+                                            tmp           = addsymbol ($1 -> name, $3);
+                                        else
+                                            tmp -> value  = $3;
+                                        fprintf (stdout, "[var] %s = %d\n", tmp -> name, tmp -> value);
+                                      }
     | EOL
     ;
 
@@ -60,6 +69,7 @@ int yyerror (const char *yyerrtext)
 
 int main ()
 {
-	symboltable  = NULL;
+    symboltable  = NULL;
     yyparse ();
+    return (0);
 }

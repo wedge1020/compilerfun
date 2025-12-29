@@ -14,7 +14,7 @@ all: head $(BIN) tail
 
 debug: CFLAGS +=  -g
 debug: DEBUG = debug
-debug: $(GAME) 
+debug: $(BIN) 
 
 head:
 ifndef DEBUG
@@ -49,40 +49,27 @@ else
 	$(YACC)  $(YACCFLAGS) $(YACCSRC)
 endif
 
-$(OBJ): lexfiles yaccfiles
-ifneq ($(MAKECMDGOALS),debug)
-	@printf "[\033[0;34m%s\033[0m]    %-28s -> %-28s ... "	  "$(CC)"        \
-															  "$(SRCFILE)"   \
-															  "$(BIN)"
-	@$(CC)   -c $(CFLAGS) $(SRCFILE) 2> $(CC).errors  && echo "\033[0;32mOK\033[0m" \
-													  || (echo "\033[0;31mFAIL\033[0m" \
-													  && exit 1)
-	@[ ! -s "$(CC).errors" ] && rm -f $(CC).errors    || echo -n
-else
-	$(CC)    -c $(CFLAGS) $(SRCFILE)				  || exit 1
-endif
-
 $(BIN): lexfiles yaccfiles
 ifneq ($(MAKECMDGOALS),debug)
 	@printf "[\033[0;34m%s\033[0m]    %-28s -> %-28s ... "	  "$(CC)"        \
 															  "lex.yy.c"   \
 															  "lex.yy.o"
-	@$(CC) -c $(CFLAGS) lex.yy.c      2>  $(CC).errors && echo "\033[1;32mOK\033[0m"  \
-													   || (echo "\033[1;31mFAIL\033[0m" \
+	@$(CC) -c $(CFLAGS) lex.yy.c      2>  $(CC).errors && echo "\033[0;32mOK\033[0m"  \
+													   || (echo "\033[0;31mFAIL\033[0m" \
 													   && exit 1)
 	@printf "[\033[0;34m%s\033[0m]    %-28s -> %-28s ... "	  "$(CC)"        \
 															  "parser.tab.c"   \
 															  "parser.tab.o"
-	@$(CC) -c $(CFLAGS) parser.tab.c  2>> $(CC).errors && echo "\033[1;32mOK\033[0m"  \
-													   || (echo "\033[1;31mFAIL\033[0m" \
+	@$(CC) -c $(CFLAGS) parser.tab.c  2>> $(CC).errors && echo "\033[0;32mOK\033[0m"  \
+													   || (echo "\033[0;31mFAIL\033[0m" \
 													   && exit 1)
 	@printf "[\033[0;34m%s\033[0m]    %-28s -> %-28s ... "	  "$(CC)"        \
 															  "symboltable.c"   \
 															  "symboltable.o"
-	@$(CC) -c $(CFLAGS) symboltable.c 2>> $(CC).errors && echo "\033[1;32mOK\033[0m"  \
-													   || (echo "\033[1;31mFAIL\033[0m" \
+	@$(CC) -c $(CFLAGS) symboltable.c 2>> $(CC).errors && echo "\033[0;32mOK\033[0m"  \
+													   || (echo "\033[0;31mFAIL\033[0m" \
 													   && exit 1)
-	@printf "[\033[0;34m%s\033[0m]    %-28s -> %-28s ... "	  "$(CC)"        \
+	@printf "[\033[1;34m%s\033[0m]    %-28s -> %-28s ... "	  "$(CC)"        \
 															  "*.o"   \
 															  "$(BIN)"
 	@$(CC)    $(CFLAGS) *.o -o $(BIN) 2>> $(CC).errors && echo "\033[1;32mDONE\033[0m"  \
