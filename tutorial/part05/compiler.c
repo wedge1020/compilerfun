@@ -9,7 +9,8 @@
 //
 // Declare global variables
 //
-uint8_t     lookahead; // lookahead character
+uint8_t     lookahead;  // lookahead character
+int32_t     labelcount; // label counter
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -460,6 +461,7 @@ void assignment (void)
 //
 void initialize (void)
 {
+	labelcount  = 0;
     getsymbol ();
 	skipwhitespace ();
 }

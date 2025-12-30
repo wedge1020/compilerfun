@@ -34,16 +34,16 @@ In what follows, we'll be starting over  again with a bare cradle, and as
 we've done twice before  now, we'll build things up one  at a time. We'll
 also be retaining the concept  of single-character tokens that has served
 us so well to date. This means  that the "code" will look a little funny,
-with 'i'  for IF, 'w' for  WHILE, etc. But  it helps us get  the concepts
-down pat without  fussing over lexical scanning. Fear  not ... eventually
-we'll see something looking like "real" code.
+with '**i**' for **IF**, '**w**' for  **WHILE**, etc. But it helps us get
+the concepts down pat without fussing over lexical scanning. Fear not ...
+eventually we'll see something looking like "real" code.
 
 I also don't want  to have us get bogged down  in dealing with statements
 other than branches, such as the assignment statements we've been working
 on. We've  already demonstrated that  we can  handle them, so  there's no
 point carrying  them around  as excess baggage  during this  exercise. So
 what I'll do  instead is to use an anonymous  statement, "other", to take
-the place of the non- control  statements and serve as a place-holder for
+the place of  the non-control statements and serve as  a place-holder for
 them. We have to  generate some kind of object code  for them (we're back
 into compiling,  not interpretation), so  for want of anything  else I'll
 just echo the character input.
@@ -453,89 +453,134 @@ echo "${lookahead}"                                 >  ${TMPFILE}.lookahead
 echo "${labelcount}"                                >  ${TMPFILE}.labelcount
 ```
 
-Also, add the following extra initialization to Init:
+### Pascal variant: initialize `LCount` in the `Init` procedure
 
+Also, add the following extra initialization to **Init**:
 
+```
    LCount := 0;
+```
 
 (DON'T forget that, or your labels can look really strange!)
 
+### C variant: initialize `labelcount` in the `initialize` function
 
-At this point I'd also like to show you a  new  kind of notation.
-If  you  compare  the form of the IF statement above with the as-
-sembler code that must be produced, you can see  that  there  are
-certain  actions  associated  with each of the  keywords  in  the
-statement:
+Also, add the following extra initialization to **initialize()**:
 
+```
+   labelcount  = 0;
+```
 
+(DON'T forget that, or your labels could look really strange!)
+
+### BASH variant: `labelcount` is already initialized
+
+Due to  being able  to initialize  `labelcount` to  0 at  the top  of the
+script, this task is already done.
+
+## parser notation
+
+At this point  I'd also like to show  you a new kind of  notation. If you
+compare the  form of the **IF**  statement above with the  assembler code
+that  must be  produced,  you  can see  that  there  are certain  actions
+associated with each of the keywords in the statement:
+
+```
      IF:  First, get the condition and issue the code for it.
           Then, create a unique label and emit a branch if false.
 
      ENDIF: Emit the label.
+```
 
-
-These actions can be shown very concisely if we write  the syntax
-this way:
+These actions  can be shown  very concisely if  we write the  syntax this
+way:
                               
-
+```
      IF
      <condition>    { Condition;
                       L = NewLabel;
                       Emit(Branch False to L); }
      <block>
      ENDIF          { PostLabel(L) }
+```
 
+This is an example of  *syntax-directed translation*. We've been doing it
+all along ... we've just never written it down this way before. The stuff
+in curly  brackets represents the  *ACTIONS* to  be taken. The  nice part
+about  this representation  is that  it not  only shows  what we  have to
+recognize, but also  the actions we have to perform,  and in which order.
+Once we have this syntax, the code almost writes itself.
 
-This is an example  of  syntax-directed  translation.  We've been
-doing it all along ... we've just never written it down  this way
-before.  The stuff in curly brackets represents the ACTIONS to be
-taken.  The nice part about this representation is  that  it  not
-only shows what  we  have  to  recognize, but also the actions we
-have to perform, and in which  order.   Once we have this syntax,
-the code almost writes itself.
+About the only thing  left to do is to be a bit  more specific about what
+we mean by "Branch if false."
 
-About  the  only thing left to do is to be a  bit  more  specific
-about what we mean by "Branch if false."
+I'm assuming that there will be code executed for *<condition>* that will
+perform Boolean algebra  and compute some result. It should  also set the
+condition flags corresponding  to that result. Now,  the usual convention
+for a  Boolean variable is  to let  0000 represent "false,"  and anything
+else (some use FFFF, some 0001) represent "true."
 
-I'm assuming that there will  be  code  executed  for <condition>
-that  will  perform  Boolean algebra and compute some result.  It
-should also set the condition flags corresponding to that result.
-Now, the usual convention  for  a Boolean variable is to let 0000
-represent "false," and  anything  else (some use FFFF, some 0001)
-represent "true."
+### M68000 condition flags
 
-On the 68000  the  condition  flags  are set whenever any data is
-moved or calculated.  If the  data  is a 0000 (corresponding to a
-false condition, remember), the zero flag will be set.   The code
-for "Branch on zero" is BEQ.  So for our purposes here,
+On the 68000  the condition flags are  set whenever any data  is moved or
+calculated. If  the data is a  0000 (corresponding to a  false condition,
+remember), the zero  flag will be set.  The code for "Branch  on zero" is
+BEQ. So for our purposes here,
 
-
+```
                BEQ  <=> Branch if false
                BNE  <=> Branch if true
+```
 
+It's the  nature of the beast  that most of  the branches we see  will be
+BEQ's  ... we'll  be  branching AROUND  the code  that's  supposed to  be
+executed when the condition is true.
 
-It's the nature of the beast that most  of  the  branches  we see
-will  be  BEQ's  ...  we'll  be branching AROUND the code  that's
-supposed to be executed when the condition is true.
+### Vircon32 conditions
 
+On  Vircon32, we  have a  set  of integer  and floating-point  relational
+instructions that will  check two registers against each  other (based on
+the desired  relational comparison),  storing the  boolean result  in the
+destination register.
 
-THE IF STATEMENT
+We can then use the **JT** and **JF** instructions (jump if true, jump if
+false) as a reaction to the result of that comparison.
 
-With that bit of explanation out of the way, we're  finally ready
-to begin coding the IF-statement parser.  In  fact,  we've almost
-already  done  it!   As usual, I'll be using our single-character
-approach, with the character 'i' for IF, and 'e'  for  ENDIF  (as
-well  as END ... that dual nature causes  no  confusion).    I'll
-also, for now, skip completely  the character for the branch con-
-dition, which we still have to define.
+```
+    IEQ   R0,    R1        ; check if R0 == R1, store result in R0
+    JT    R0,    newlabel  ; if R0 is true, jump to `newlabel`
+```
 
-The code for DoIf is:
+We have instructions for the six relational operations:
 
+| INTEGER | FLOAT | DESCRIPTION                       |
+| ------- | ----- | --------------------------------- |
+| IEQ     | FEQ   | check if equal                    |
+| INE     | FNE   | check if NOT equal                |
+| ILT     | FLT   | check if less than                |
+| ILE     | FLE   | check if less than or equal to    |
+| IGT     | FGT   | check if greater than             |
+| IGE     | FGE   | check if greater than or equal to |
+
+## THE IF STATEMENT
+
+With that bit of explanation out of the way, we're finally ready to begin
+coding the IF-statement parser. In fact, we've almost already done it! As
+usual, I'll  be using our  single-character approach, with  the character
+'**i**' for  **IF**, and '**e**'  for **ENDIF**  (as well as  **END** ...
+that  dual  nature  causes  no  confusion).  I'll  also,  for  now,  skip
+completely the character for the branch condition, which we still have to
+define.
+
+The code for **DoIf** is:
+
+### Pascal variant: implementing `DoIf()` 
+
+```
 {--------------------------------------------------------------}
 { Recognize and Translate an IF Construct }
 
 procedure Block; Forward;
-
 
 procedure DoIf;
 var L: string;
@@ -549,12 +594,62 @@ begin
    PostLabel(L);
 end;
 {--------------------------------------------------------------}
+```
 
+### C variant: implementing `doif()` 
 
-Add this routine to your program, and change  Block  to reference
-it as follows:
+```
+//////////////////////////////////////////////////////////////////////////////
+//
+// doif(): recognize and translate an IF construct
+//
+void doif (void)
+{
+    uint8_t *labelstring  = NULL;
+    uint8_t  str[32];
 
+    match ('i');
 
+    labelstring           = newlabel ();
+
+    condition ();
+
+    sprintf (str, "JT    R0,    %s", labelstring);
+    emitline (str);
+
+    block ();
+
+    match ('e');
+
+    postlabel (labelstring);
+}
+```
+
+### BASH variant: implementing `doif()` 
+
+```
+##############################################################################
+##
+## doif(): recognize and translate an IF construct
+##
+function doif()
+{
+    match "i"
+    labelstring=$(newlabel)
+    condition
+    emitline "JT    R0,    ${labelstring}"
+    block
+    match "e"
+    postlabel "${labelstring}"
+}
+```
+
+Add this routine to your program, and change **block** to reference it as
+follows:
+
+### Pascal variant: updating the `Block()` procedure
+
+```
 {--------------------------------------------------------------}
 { Recognize and Translate a Statement Block }
 
@@ -568,15 +663,66 @@ begin
    end;
 end;
 {--------------------------------------------------------------}
+```
 
+### C variant: updating the `block()` function
 
-Notice the reference to procedure Condition.    Eventually, we'll
-write a routine that  can  parse  and  translate any Boolean con-
-dition we care to give it.  But  that's  a  whole  installment by
-itself (the next one, in fact).    For  now, let's just make it a
-dummy that emits some text.  Write the following routine:
+```
+//////////////////////////////////////////////////////////////////////////////
+//
+// block(): recognize and translate a statement block
+//
+void block (void)
+{
+    while (lookahead != 'e')
+    {
+        switch (lookahead)
+        {
+            case 'i':
+                doif ();
+                break;
 
+            case 'o':
+                other ();
+                break;
+        }
+    }
+}
+```
 
+### BASH variant: updating the `block()` function
+
+```
+##############################################################################
+##
+## block(): recognize and translate a statement block
+##
+function block()
+{
+    lookahead=$(cat ${TMPFILE}.lookahead)
+    while [ ! "${lookahead}" = "e" ]; do
+
+        case "${lookahead}" in
+            'i')
+                doif
+                ;;
+            'o')
+                other
+                ;;
+        esac
+    done
+}
+```
+
+Notice the reference to  procedure **Condition**. Eventually, we'll write
+a routine that  can parse and translate any Boolean  condition we care to
+give  it. But  that's a  whole installment  by itself  (the next  one, in
+fact). For now,  let's just make it  a dummy that emits  some text. Write
+the following routine:
+
+### Pascal variant: implementing the `Condition` procedure
+
+```
 {--------------------------------------------------------------}
 { Parse and Translate a Boolean Condition }
 { This version is a dummy }
@@ -586,48 +732,81 @@ begin
    EmitLn('<condition>');
 end;
 {--------------------------------------------------------------}
+```
 
+### C variant: implementing the `condition()` function
 
-Insert this procedure in your program just before DoIf.   Now run
-the program.  Try a string like
+```
+//////////////////////////////////////////////////////////////////////////////
+//
+// condition(): parse and translate a boolean condition (this version is a
+//              dummy)
+//
+void condition (void)
+{
+    emitline ("<condition>");
+}
+```
 
+### BASH variant: implementing the `condition()` function
+
+```
+##############################################################################
+##
+## condition(): parse and translate a boolean condition (this version is a
+##              dummy)
+##
+function condition()
+{
+    emitline "<condition>"
+}
+```
+
+Insert this procedure  in your program just before **DoIf**.  Now run the
+program. Try a string like:
+
+```
      aibece
+```
 
-As you can see,  the  parser seems to recognize the construct and
-inserts the object code at the  right  places.   Now try a set of
-nested IF's, like
+As you can  see, the parser seems to recognize  the construct and inserts
+the object code  at the right places.  Now try a set  of nested **IF**'s,
+like:
 
+```
      aibicedefe
+```
 
 It's starting to look real, eh?
 
-Now that we  have  the  general  idea  (and the tools such as the
-notation and the procedures NewLabel and PostLabel), it's a piece
-of cake to extend the parser to include other  constructs.    The
-first (and also one of the  trickiest)  is to add the ELSE clause
-to IF.  The BNF is
+Now that we have the general idea (and the tools such as the notation and
+the procedures **NewLabel**  and **PostLabel**), it's a piece  of cake to
+extend the parser to include other constructs. The first (and also one of
+the trickiest) is to add the **ELSE** clause to **IF**. The BNF is
 
-
+```
      IF <condition> <block> [ ELSE <block>] ENDIF
+```
 
+The tricky  part arises simply because  there is an optional  part, which
+doesn't occur in the other constructs.
 
-The tricky part arises simply  because there is an optional part,
-which doesn't occur in the other constructs.
+### M68000 details
 
-The corresponding output code should be
+The corresponding output code should be:
 
-
+```
           <condition>
           BEQ L1
           <block>
           BRA L2
      L1:  <block>
      L2:  ...
-
+```
 
 This leads us to the following syntax-directed translation:
 
-
+``
      IF
      <condition>    { L1 = NewLabel;
                       L2 = NewLabel;
@@ -637,14 +816,45 @@ This leads us to the following syntax-directed translation:
                       PostLabel(L1) }
      <block>
      ENDIF          { PostLabel(L2) }
+```
 
+### Vircon32 details
 
-Comparing this with the case for an ELSE-less IF gives us  a clue
-as to how to handle both situations.   The  code  below  does it.
-(Note that I  use  an  'l'  for  the ELSE, since 'e' is otherwise
-occupied):
+The corresponding output code should be:
 
+```
+          <condition>
+          JT    R0,    L1
+          <block>
+          JMP   L2
+     L1:  <block>
+     L2:  ...
+```
 
+This  leads us  to the  following syntax-directed  translation (in  C and
+BASH):
+
+``
+     IF
+     <condition>    { L1  = newlabel();  // BASH: L1=$(newlabel)
+                      L2  = newlabel();  // BASH: L2=$(newlabel)
+                      sprintf (str, "JT    R0,    %s", L1);
+                      emit (str); } 
+     <block>
+     ELSE           { sprintf (str, "JMP   %s", L2);
+                      emit (str);
+                      postlabel (L1); }
+     <block>
+     ENDIF          { postlabel (L2); }
+```
+
+Comparing this with the case for an *ELSE-less* **IF** gives us a clue as
+to how to  handle both situations. The  code below does it.  (Note that I
+use an '**l**' for the **ELSE**, since '**e**' is otherwise occupied):
+
+### Pascal variant: updating `DoIf` procedure for `ELSE` clauses
+
+```
 {--------------------------------------------------------------}
 { Recognize and Translate an IF Construct }
 
@@ -668,73 +878,173 @@ begin
    PostLabel(L2);
 end;
 {--------------------------------------------------------------}
+```
 
+### C variant: updating `doif()` function for `ELSE` clauses
 
-There you have it.  A complete IF parser/translator, in  19 lines
-of code.
+```
+//////////////////////////////////////////////////////////////////////////////
+//
+// doif(): recognize and translate an IF construct
+//
+void doif (void)
+{
+    uint8_t *L1    = NULL;
+    uint8_t *L2    = NULL;
+    uint8_t  str[32];
 
-Give it a try now.  Try something like
+    match ('i');
+    condition ();
 
+    L1             = newlabel ();
+
+    sprintf (str, "JT    R0,    %s", L1);
+    emitline (str);
+
+    block ();
+
+    if (lookahead == 'l')
+    {
+        match ('l');
+        L2         = newlabel ();
+
+        sprintf (str, "JMP   %s", L2);
+        emitline (str);
+
+        postlabel (L1);
+        block ();
+    }
+
+    match ('e');
+    postlabel (L2);
+}
+```
+
+### BASH variant: updating `doif()` function for `ELSE` clauses
+
+```
+##############################################################################
+##
+## doif(): recognize and translate an IF construct
+##
+function doif()
+{
+    match "i"
+    condition
+
+    L1=$(newlabel)
+    emitline "JT    R0,    ${L1}"
+
+    block
+
+    lookahead=$(cat ${TMPFILE}.lookahead)
+    if [ "${lookahead}" = "l" ]; then
+        match "l"
+
+        L2=$(newlabel)
+        emitline "JMP   ${L2}"
+
+        postlabel "${L1}"
+        block
+    fi
+
+    match "e"
+    postlabel "${L2}"
+}
+```
+
+There you have it. A complete  IF parser/translator, in 19/35/28 lines of
+code.
+
+Give it a try now.  Try something like:
+
+```
    aiblcede
+```
 
-Did it work?  Now, just  to  be  sure we haven't broken the ELSE-
-less case, try
+Did it work? Now,  just to be sure we haven't  broken the ELSE-less case,
+try:
 
+```
    aibece
+```
 
-Now try some nested IF's.  Try anything you like,  including some
-badly formed statements.   Just  remember that 'e' is not a legal
-"other" statement.
+Now try some nested **IF**'s. Try anything you like, including some badly
+formed statements. Just remember that  '**e**' is not a legal "**other**"
+statement.
 
+## THE WHILE STATEMENT
 
-THE WHILE STATEMENT
+The next  type of  statement should  be easy, since  we already  have the
+process down pat. The syntax I've chosen for the **WHILE** statement is:
 
-The next type of statement should be easy, since we  already have
-the process  down  pat.    The  syntax  I've chosen for the WHILE
-statement is
-
-
+```
           WHILE <condition> <block> ENDWHILE
+```
 
+I know,  I know, we don't  REALLY need separate kinds  of terminators for
+each construct ... you can see that by the fact that in our one-character
+version,  '**e**' is  used for  all  of them.  But I  also remember  MANY
+debugging sessions in Pascal, trying to track down a wayward **END** that
+the compiler obviously  thought I meant to put somewhere  else. It's been
+my experience that specific and unique keywords, although they add to the
+vocabulary of  the language, give a  bit of error-checking that  is worth
+the extra work for the compiler writer.
 
-I know,  I  know,  we  don't  REALLY  need separate kinds of ter-
-minators for each construct ... you can see that by the fact that
-in our one-character version, 'e' is used for all of them.  But I
-also remember  MANY debugging sessions in Pascal, trying to track
-down a wayward END that the compiler obviously thought I meant to
-put  somewhere  else.   It's been my experience that specific and
-unique  keywords,  although  they add to the  vocabulary  of  the
-language,  give  a  bit of error-checking that is worth the extra
-work for the compiler writer.
+Now, consider what the **WHILE** should be translated into. It should be:
 
-Now,  consider  what  the  WHILE  should be translated into.   It
-should be:
+### M68000 details
 
-
+```
      L1:  <condition>
           BEQ L2
           <block>
           BRA L1
      L2:
+```
 
 
+As before, comparing the two  representations gives us the actions needed
+at each point.
 
-
-As before, comparing the two representations gives us the actions
-needed at each point.
-
-
+```
      WHILE          { L1 = NewLabel;
                       PostLabel(L1) }
      <condition>    { Emit(BEQ L2) }
      <block>
      ENDWHILE       { Emit(BRA L1);
                       PostLabel(L2) }
+```
 
+### Vircon32 details
+
+```
+     L1:  <condition>
+          JT    R0,    L2
+          <block>
+          JMP   L1
+     L2:
+```
+
+As before, comparing the two  representations gives us the actions needed
+at each point:
+
+```
+     WHILE          { L1 = newlabel ();
+                      postlabel (L1); }
+     <condition>    { sprintf (str, "JT    R0,    %s", L2);
+                      emit (str); }
+     <block>
+     ENDWHILE       { sprintf (str, "JMP   %s", L1);
+                      emit (BRA L1);
+                      postlabel (L2); }
+```
 
 The code follows immediately from the syntax:
 
+### Pascal variant: implementing the `DoWhile` procedure
 
+```
 {--------------------------------------------------------------}
 { Parse and Translate a WHILE Statement }
 
@@ -753,10 +1063,11 @@ begin
    PostLabel(L2);
 end;
 {--------------------------------------------------------------}
+```
 
 
-Since  we've  got a new statement, we have to add a  call  to  it
-within procedure Block:
+Since we've  got a  new statement,  we have to  add a  call to  it within
+procedure Block:
 
 
 {--------------------------------------------------------------}
