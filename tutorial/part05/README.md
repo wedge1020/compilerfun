@@ -834,7 +834,7 @@ The corresponding output code should be:
 This  leads us  to the  following syntax-directed  translation (in  C and
 BASH):
 
-``
+```
      IF
      <condition>    { L1  = newlabel();  // BASH: L1=$(newlabel)
                       L2  = newlabel();  // BASH: L2=$(newlabel)
@@ -1122,7 +1122,9 @@ avoids the funny  WHILE(1) or WHILE TRUE of C and Pascal.
 
 The syntax is simply
 
+```
      LOOP <block> ENDLOOP
+```
 
 and the syntax-directed translation is:
 
