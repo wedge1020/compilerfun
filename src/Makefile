@@ -89,4 +89,4 @@ ifndef DEBUG
 endif
 
 clean:
-	@rm -vf .*.sw[op] *.save* *~ *.errors *.debug *.o lex.yy.c parser.tab.c parser.tab.h $(BIN)
+	@rm -f .*.sw[op] *.save* *~ *.errors *.debug *.o lex.yy.c parser.tab.c parser.tab.h $(BIN)

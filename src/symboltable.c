@@ -4,7 +4,7 @@
 #include <string.h>
 #include "symboltable.h"
 
-symrec *addsymbol (const uint8_t *name, int32_t value)
+symrec *addsymbol (char const *name, int value)
 {
     symrec *tmp             = symboltable;
 
@@ -35,51 +35,36 @@ symrec *addsymbol (const uint8_t *name, int32_t value)
         tmp                 = tmp -> next;
     }
 
-    fprintf (stdout, "[addsymbol] name length is: %lu\n", strlen ((const char *) name));
-    tmp -> name             = (uint8_t *) calloc (strlen ((const char *) name) + 1, sizeof (uint8_t));
+    fprintf (stdout, "[addsymbol] name length is: %lu\n", strlen (name));
+    tmp -> name             = (char *) calloc (strlen (name) + 1, sizeof (char));
     if (tmp -> name        == NULL)
     {
         fprintf (stderr, "[addsymbol] Could not calloc() for tmp -> name!\n");
         exit (4);
     }
-    tmp -> data.intvalue    = value;
+    tmp -> value            = value;
     tmp -> next             = NULL;
-    strncpy ((char *) tmp -> name, (const char *) name, strlen ((const char *) name));
+    strncpy (tmp -> name, (char *) name, strlen (name));
 
     return (tmp);
 }
 
-symrec *getsymbol (const uint8_t *name)
+symrec *getsymbol (char const *name)
 {
-    int32_t  chk  = 0;
-    size_t   len  = 0;
-    symrec  *tmp  = symboltable;
-    while (tmp   != NULL)
+    int     chk  = 0;
+    size_t  len  = 0;
+    symrec *tmp  = symboltable;
+    while (tmp  != NULL)
     {
-        len       = strlen ((const char *) name);
-        chk       = strncmp ((const char *) name, (char *) tmp -> name, len);
-        if (chk  == 0)
+        len      = strlen (name);
+        chk      = strncmp (name, tmp -> name, len);
+        if (chk == 0)
         {
             break;
         }
 
-        tmp       = tmp -> next;
+        tmp      = tmp -> next;
     }
 
     return (tmp);
-}
-
-int32_t  call_function (symrec *func, argnode *args)
-{
-    int32_t  result   = (*(func->data.func_ptr))(args->value); // Example for 1-arg
-
-    // Clean up the list
-    while (args      != NULL)
-	{
-        argnode *tmp  = args;
-        args          = args -> next;
-        free (tmp);
-    }
-
-    return (result);
 }
