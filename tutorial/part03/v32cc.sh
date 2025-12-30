@@ -484,7 +484,7 @@ function initialize()
 ##
 initialize
 assignment
-if [ ! "${alookahead}" = '\n' ]; then
+if [ ! "${lookahead}" = '\n' ]; then
     expected "newline"
 fi
 
