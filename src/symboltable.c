@@ -68,3 +68,18 @@ symrec *getsymbol (const uint8_t *name)
 
     return (tmp);
 }
+
+int32_t  call_function (symrec *func, argnode *args)
+{
+    int32_t  result   = (*(func->data.func_ptr))(args->value); // Example for 1-arg
+
+    // Clean up the list
+    while (args      != NULL)
+	{
+        argnode *tmp  = args;
+        args          = args -> next;
+        free (tmp);
+    }
+
+    return (result);
+}

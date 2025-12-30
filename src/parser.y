@@ -17,13 +17,15 @@
     float               *floatptr;
     void                *voidptr;
     struct symbolrecord *tptr;
+    struct argumentnode *argv;
 }
 
 %token            EOL
-%token <tptr>     VARIABLE
+%token <tptr>     VARIABLE FUNCTION
 %token <intval>   INTEGER
 %token <floatval> FLOAT
-%type  <intval>   expression
+%type  <intval>   expression arglist
+//%type  <argv>     arglist
 %left  '+' '-'               // Left-associative, lower precedence
 %left  '*' '/' '%'           // Left-associative, higher precedence
 %precedence UMINUS           // Unary minus
@@ -47,19 +49,35 @@ line:
     | EOL
     ;
 
+arglist: expression
+       | arglist ',' expression   { $$ = $3; }
+       ;
+
 expression:
-    INTEGER                       { $$ = $1;                  }
-    | VARIABLE                    { $$ = $1 -> data.intvalue; } // Retrieve variable value
-    | expression '+' expression   { $$ = $1 + $3;             }
-    | expression '-' expression   { $$ = $1 - $3;             }
-    | expression '*' expression   { $$ = $1 * $3;             }
-    | expression '/' expression   { $$ = $1 / $3;             }
-    | expression '%' expression   { $$ = $1 % $3;             }
-    | '(' expression ')'          { $$ = $2;                  } // (P)arentheses
-    | '+' expression %prec UMINUS { $$ = +$2;                 } // Context-dependent precedence
-    | '-' expression %prec UMINUS { $$ = -$2;                 } // Context-dependent precedence
+    INTEGER                       { $$ = $1;                          }
+    | VARIABLE                    { $$ = $1 -> data.intvalue;         } // Retrieve variable value
+    | FUNCTION '(' arglist ')'    { $$ = call_function ($1, $3);      } // function call
+    | expression '+' expression   { $$ = $1 + $3;                     }
+    | expression '-' expression   { $$ = $1 - $3;                     }
+    | expression '*' expression   { $$ = $1 * $3;                     }
+    | expression '/' expression   { $$ = $1 / $3;                     }
+    | expression '%' expression   { $$ = $1 % $3;                     }
+    | '(' expression ')'          { $$ = $2;                          } // (P)arentheses
+    | '+' expression %prec UMINUS { $$ = +$2;                         } // Context-dependent precedence
+    | '-' expression %prec UMINUS { $$ = -$2;                         } // Context-dependent precedence
     ;
 
+arglist: expression             { argnode *tmp  = (argnode *) malloc (sizeof (argnode));
+                                  tmp -> value  = $1;
+                                  tmp -> next   = NULL;
+                                  $$            = tmp;
+                                }
+       | arglist ',' expression { argnode *tmp  = (argnode *) malloc (sizeof (argnode));
+                                  tmp -> value  = $3;
+                                  tmp -> next   = $1;
+                                  $$            = tmp;
+                                }
+       ;
 %%
 
 int yyerror (const char *yyerrtext)
