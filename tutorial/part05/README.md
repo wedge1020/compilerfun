@@ -5,7 +5,7 @@ Originally by: Jack W. Crenshaw, Ph.D. (August 19, 1988)
 Copyright (C) 1988 Jack W. Crenshaw. All rights reserved.
 
 Updated and reformatted in github-style  markdown, adding in variants for
-BASH and C alongside the originally-provided (but de-camel-cased) Pascal.
+BASH and C alongside the originally-provided Pascal code.
 
 # Part V: CONTROL CONSTRUCTS
 
@@ -132,20 +132,20 @@ What signals the end of a block?  It's simply any construct that isn't an
 "other" statement. For now, that means only the END statement.
 
 Armed with these ideas,  we can proceed to build up  our parser. The code
-for a program (we have to call it **doprogram**, or Pascal will complain,
+for a program (we have to call it **DoProgram**, or Pascal will complain,
 is:
 
-### Pascal version: implementing `doprogram()`
+### Pascal variant: implementing `DoProgram()`
 
 ```
 {--------------------------------------------------------------}
 { Parse and Translate a Program }
 
-procedure doprogram;
+procedure DoProgram;
 begin
-    block;
-    if LOOK <> 'e' then expected('end');
-    emitln('END')
+    Block;
+    if Look <> 'e' then Expected('End');
+    EmitLn('END')
 end;
 {--------------------------------------------------------------}
 ```
@@ -160,7 +160,7 @@ end;
 function doprogram()
 {
     block
-    lookahead=$(cat ${TMPFILE}.look)
+    lookahead=$(cat ${TMPFILE}.lookahead)
     if [ ! "${lookahead}" = "e" ]; then
         expected "end"
     fi
@@ -178,7 +178,7 @@ function doprogram()
 void doprogram (void)
 {
     block ();
-    if ( lookahead != "e" ]; then
+    if (lookahead != 'e')
         expected ("end");
     fi
     emitline ("HALT");
@@ -189,24 +189,24 @@ Notice that  I've arranged  to emit  an "END"  command to  the assembler,
 which sort  of punctuates  the output code,  and makes  sense considering
 that we're parsing a complete program here.
 
-The code for **block** is:
+The code for **Block** is:
 
-### Pascal version: implementing `block()`
+### Pascal variant: implementing `Block()`
 
 ```
 {--------------------------------------------------------------}
 { Recognize and Translate a Statement Block }
 
-procedure block;
+procedure Block;
 begin
-    while not(LOOK in ['e']) do begin
-        other;
+    while not(Look in ['e']) do begin
+        Other;
     end;
 end;
 {--------------------------------------------------------------}
 ```
 
-### C version: implementing `block()`
+### C variant: implementing `block()`
 
 ```
 ///////////////////////////////////////////////////////////////////////////
@@ -222,7 +222,7 @@ void block (void)
 }
 ```
 
-### BASH version: implementing `block()`
+### BASH variant: implementing `block()`
 
 ```
 ##############################################################################
@@ -231,9 +231,9 @@ void block (void)
 ##
 function block()
 {
-    lookahead=$(cat ${TMPFILE}.look)
-    while [ ! "${lookahead} = 'e' ]; do
-        other ();
+    lookahead=$(cat ${TMPFILE}.lookahead)
+    while [ ! "${lookahead}" = "e" ]; do
+        other
     done
 }
 ```
@@ -300,15 +300,17 @@ unconditional branches. For example, the simple IF statement
 
 It's clear, then,  that we're going to need some  more procedures to help
 us  deal  with these  branches.  I've  defined  two  of them  below.  The
-procedure  **newlabel** generates  unique labels.  This is  done via  the
+procedure  **NewLabel** generates  unique labels.  This is  done via  the
 expedience of calling every label '**L**nn', where *nn* is a label number
 starting from zero.
 
-The procedure **postlabel** just outputs the labels at the proper place.
+The procedure **PostLabel** just outputs the labels at the proper place.
 
 Here are the two routines:
 
+### Pascal variant: implementing `NewLabel()`
 
+```
 {--------------------------------------------------------------}
 { Generate a Unique Label }
 
@@ -319,8 +321,59 @@ begin
    NewLabel := 'L' + S;
    Inc(LCount);
 end;
+```
 
+### C variant: implementing `newlabel()`
 
+```
+//////////////////////////////////////////////////////////////////////////////
+//
+// newlabel(): generate a unique label
+//
+uint8_t *newlabel (void)
+{
+    uint8_t  str[32];
+    sprintf (str, "L%d", labelcount);
+    labelcount  = labelcount + 1;
+
+    return (str);
+}
+```
+
+### BASH variant: implementing `newlabel()`
+
+```
+##############################################################################
+##
+## newlabel(): generate a unique label
+##
+function newlabel()
+{
+    ##########################################################################
+    ##
+    ## obtain `labelcount` and construct our `labelstring`
+    ##
+    labelcount=$(cat ${TMPFILE}.labelcount)
+    labelstring="L${labelcount}"
+
+    ##########################################################################
+    ##
+    ## increment and update `labelcount`
+    ##
+    let labelcount=labelcount+1;
+    echo "${labelcount}"                            >  ${TMPFILE}.labelcount
+
+    ##########################################################################
+    ##
+    ## display `labelstring` to STDOUT. This is what we "return"
+    ##
+    echo "${labelstring}"
+}
+```
+
+### Pascal variant: implementing `PostLabel()`
+
+```
 {--------------------------------------------------------------}
 { Post a Label To Output }
 
@@ -329,16 +382,76 @@ begin
    WriteLn(L, ':');
 end;
 {--------------------------------------------------------------}
+```
 
+### C variant: implementing `postlabel()`
 
-Notice that we've added  a  new  global  variable, LCount, so you
-need to change the VAR declarations at the top of the  program to
-look like this:
+```
+//////////////////////////////////////////////////////////////////////////////
+//
+// postlabel(): post a label to output
+//
+void postlabel (uint8_t *labelstring)
+{
+    fprintf (stdout, "%s:\n", labelstring);
+}
+```
 
+### BASH variant: implementing `postlabel()`
 
+```
+##############################################################################
+##
+## postlabel(): post a label to output
+##
+function postlabel()
+{
+    labelstring="${1}"
+    echo "${labelstring}:"
+}
+```
+
+### Pascal variant: updating global variables
+
+Notice that we've added a new global variable, **LCount**, so you need to
+change the  **VAR** declarations at the  top of the program  to look like
+this:
+
+```
 var Look  : char;              { Lookahead Character }
     Lcount: integer;           { Label Counter }
+```
 
+### C variant: updating global variables
+
+Notice that  we've added  a new global  variable, **labelcount**,  so you
+need to add the declarations at the top of the program to look like this:
+
+```
+//////////////////////////////////////////////////////////////////////////////
+//
+// Declare global variables
+//
+uint8_t  lookahead;            // lookahead character
+int32_t  labelcount;           // label counter
+```
+
+### BASH variant: updating global variables
+
+Notice that  we've added  a new global  variable, **labelcount**,  so you
+need to add the declarations at the top of the program to look like this:
+
+```
+##############################################################################
+##
+## Declare global variables
+##
+lookahead=                              ## lookahead character
+labelcount=0                            ## label count
+TMPFILE=$(mktemp -p /tmp compiler.XXXX) ## temporary file
+echo "${lookahead}"                                 >  ${TMPFILE}.lookahead
+echo "${labelcount}"                                >  ${TMPFILE}.labelcount
+```
 
 Also, add the following extra initialization to Init:
 
