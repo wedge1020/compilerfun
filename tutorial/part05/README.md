@@ -1,4 +1,4 @@
-# Tutorial: LET'S BUILD A COMPILER!
+# TUTORIAL: LET'S BUILD A COMPILER!
 
 Originally by: Jack W. Crenshaw, Ph.D. (August 19, 1988)
 
@@ -7,7 +7,18 @@ Copyright (C) 1988 Jack W. Crenshaw. All rights reserved.
 Updated and reformatted in github-style  markdown, adding in variants for
 BASH and C alongside the originally-provided Pascal code.
 
-# Part V: CONTROL CONSTRUCTS
+# PART V: CONTROL CONSTRUCTS
+
+## TABLE OF CONTENTS
+
+  * [INTRODUCTION](#INTRODUCTION)
+  * [THE PLAN](#THE-PLAN)
+  * [SOME GROUNDWORK](#SOME-GROUNDWORK)
+  * [THE IF STATEMENT](#THE-IF-STATEMENT)
+  * [THE WHILE STATEMENT](#THE-WHILE-STATEMENT)
+  * [THE LOOP STATEMENT](#THE-LOOP-STATEMENT)
+  * [REPEAT-UNTIL](#REPEAT-UNTIL)
+  * [THE FOR LOOP](#THE-FOR-LOOP)
 
 ## INTRODUCTION
 
