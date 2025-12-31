@@ -51,20 +51,20 @@ just echo the character input.
 OK, then, starting with yet another  copy of the cradle, let's define the
 procedure:
 
-### BASH variant: implementing `other()`
+### Pascal variant: implementing `Other` procedure
 
 ```
-##############################################################################
-##
-## other(): recognize and translate an "other"
-##
-function other()
-{
-    emitline "$(getname)"
-}
+{--------------------------------------------------------------}
+{ Recognize and Translate an "Other" }
+
+procedure Other;
+begin
+   EmitLn(GetName);
+end;
+{--------------------------------------------------------------}
 ```
 
-### C variant: implementing `other()`
+### C variant: implementing `other()` function
 
 ```
 //////////////////////////////////////////////////////////////////////////////
@@ -77,24 +77,35 @@ void other (void)
 }
 ```
 
-Now include a call to it in the main program, thus:
-
-### BASH variant: using `other()`
+### BASH variant: implementing `other()` function
 
 ```
 ##############################################################################
 ##
-## where we start
+## other(): recognize and translate an "other"
 ##
-initialize
-other
-
-rm -f ${TMPFILE} ${TMPFILE}.look
-
-exit 0
+function other()
+{
+    emitline "$(getname)"
+}
 ```
 
-### C variant: using `other()`
+Now include a call to it in the main program, thus:
+
+### Pascal variant: using `Other` procedure
+
+```
+{--------------------------------------------------------------}
+{ Main Program }
+
+begin
+    Init;
+    Other;
+end.
+{--------------------------------------------------------------}
+```
+
+### C variant: using `other()` function
 
 ```
 //////////////////////////////////////////////////////////////////////////////
@@ -110,6 +121,21 @@ int32_t  main ()
 }
 ```
 
+### BASH variant: using `other()` function
+
+```
+##############################################################################
+##
+## where we start
+##
+initialize
+other
+
+rm -f ${TMPFILE} ${TMPFILE}.look
+
+exit 0
+```
+
 Run the program and see what you  get. Not very exciting, is it? But hang
 in there, it's a start, and things will get better.
 
@@ -119,9 +145,9 @@ the last session  on interpreting, but this time let's  get a little more
 formal. Consider the following BNF:
 
 ```
-          <program> ::= <block> END
+    <program> ::= <block> END
 
-          <block> ::= [ <statement> ]*
+    <block> ::= [ <statement> ]*
 ```
 
 This says that, for  our purposes here, a program is  defined as a block,
@@ -135,7 +161,7 @@ Armed with these ideas,  we can proceed to build up  our parser. The code
 for a program (we have to call it **DoProgram**, or Pascal will complain,
 is:
 
-### Pascal variant: implementing `DoProgram()`
+### Pascal variant: implementing `DoProgram` procedure 
 
 ```
 {--------------------------------------------------------------}
@@ -150,7 +176,24 @@ end;
 {--------------------------------------------------------------}
 ```
 
-### BASH variant: implementing `doprogram()`
+### C variant: implementing `doprogram()` function
+
+```
+//////////////////////////////////////////////////////////////////////////////
+//
+// doprogram(): parse and translate a program
+//
+void doprogram (void)
+{
+    block ();
+    if (lookahead != 'e')
+        expected ("end");
+    fi
+    emitline ("HALT");
+}
+```
+
+### BASH variant: implementing `doprogram()` function
 
 ```
 ##############################################################################
@@ -168,30 +211,13 @@ function doprogram()
 }
 ```
 
-### C variant: implementing `doprogram()`
-
-```
-//////////////////////////////////////////////////////////////////////////////
-//
-// doprogram(): parse and translate a program
-//
-void doprogram (void)
-{
-    block ();
-    if (lookahead != 'e')
-        expected ("end");
-    fi
-    emitline ("HALT");
-}
-```
-
 Notice that  I've arranged  to emit  an "END"  command to  the assembler,
 which sort  of punctuates  the output code,  and makes  sense considering
 that we're parsing a complete program here.
 
 The code for **Block** is:
 
-### Pascal variant: implementing `Block()`
+### Pascal variant: implementing `Block` procedure
 
 ```
 {--------------------------------------------------------------}
@@ -206,7 +232,7 @@ end;
 {--------------------------------------------------------------}
 ```
 
-### C variant: implementing `block()`
+### C variant: implementing `block()` function
 
 ```
 ///////////////////////////////////////////////////////////////////////////
@@ -222,7 +248,7 @@ void block (void)
 }
 ```
 
-### BASH variant: implementing `block()`
+### BASH variant: implementing `block()` function
 
 ```
 ##############################################################################
@@ -245,7 +271,6 @@ OK, enter these routines into your  program. Replace the call to Block in
 the main  program, by  a call  to DoProgram. Now  try it  and see  how it
 works. Well, it's still not much, but we're getting closer.
 
-
 ## SOME GROUNDWORK
 
 Before we begin to define the  various control constructs, we need to lay
@@ -254,7 +279,7 @@ same syntax for  these constructs as you're familiar with  from Pascal or
 C. For example, the Pascal syntax for an IF is:
 
 ```
-     IF <condition> THEN <statement>
+    IF <condition> THEN <statement>
 ```
 
 (where the statement, of course, may be compound).
@@ -262,13 +287,13 @@ C. For example, the Pascal syntax for an IF is:
 The C version is similar:
 
 ```
-     IF ( <condition> ) <statement>
+    IF ( <condition> ) <statement>
 ```
 
 Instead, I'll be using something that looks more like Ada:
 
 ```
-     IF <condition> <block> ENDIF
+    IF <condition> <block> ENDIF
 ```
 
 In other words, the IF construct  has a specific termination symbol. This
@@ -286,16 +311,16 @@ control, which  at the assembler-language level  means conditional and/or
 unconditional branches. For example, the simple IF statement
 
 ```
-          IF <condition> A ENDIF B ....
+    IF <condition> A ENDIF B ....
 ```
 
 ... must get translated into:
 
 ```
-          Branch if NOT condition to L
-          A
-     L:   B
-          ...
+     Branch if NOT condition to L
+     A
+L:   B
+     ...
 ```
 
 It's clear, then,  that we're going to need some  more procedures to help
@@ -308,7 +333,7 @@ The procedure **PostLabel** just outputs the labels at the proper place.
 
 Here are the two routines:
 
-### Pascal variant: implementing `NewLabel()`
+### Pascal variant: implementing `NewLabel` procedure
 
 ```
 {--------------------------------------------------------------}
@@ -317,13 +342,13 @@ Here are the two routines:
 function NewLabel: string;
 var S: string;
 begin
-   Str(LCount, S);
-   NewLabel := 'L' + S;
-   Inc(LCount);
+    Str(LCount, S);
+    NewLabel := 'L' + S;
+    Inc(LCount);
 end;
 ```
 
-### C variant: implementing `newlabel()`
+### C variant: implementing `newlabel()` function
 
 ```
 //////////////////////////////////////////////////////////////////////////////
@@ -340,7 +365,7 @@ uint8_t *newlabel (void)
 }
 ```
 
-### BASH variant: implementing `newlabel()`
+### BASH variant: implementing `newlabel()` function
 
 ```
 ##############################################################################
@@ -371,7 +396,7 @@ function newlabel()
 }
 ```
 
-### Pascal variant: implementing `PostLabel()`
+### Pascal variant: implementing `PostLabel` procedure
 
 ```
 {--------------------------------------------------------------}
@@ -379,12 +404,12 @@ function newlabel()
 
 procedure PostLabel(L: string);
 begin
-   WriteLn(L, ':');
+    WriteLn(L, ':');
 end;
 {--------------------------------------------------------------}
 ```
 
-### C variant: implementing `postlabel()`
+### C variant: implementing `postlabel()` function
 
 ```
 //////////////////////////////////////////////////////////////////////////////
@@ -397,7 +422,7 @@ void postlabel (uint8_t *labelstring)
 }
 ```
 
-### BASH variant: implementing `postlabel()`
+### BASH variant: implementing `postlabel()` function
 
 ```
 ##############################################################################
@@ -458,7 +483,7 @@ echo "${labelcount}"                                >  ${TMPFILE}.labelcount
 Also, add the following extra initialization to **Init**:
 
 ```
-   LCount := 0;
+    LCount := 0;
 ```
 
 (DON'T forget that, or your labels can look really strange!)
@@ -468,7 +493,7 @@ Also, add the following extra initialization to **Init**:
 Also, add the following extra initialization to **initialize()**:
 
 ```
-   labelcount  = 0;
+    labelcount  = 0;
 ```
 
 (DON'T forget that, or your labels could look really strange!)
@@ -486,22 +511,22 @@ that  must be  produced,  you  can see  that  there  are certain  actions
 associated with each of the keywords in the statement:
 
 ```
-     IF:  First, get the condition and issue the code for it.
-          Then, create a unique label and emit a branch if false.
+    IF:  First, get the condition and issue the code for it.
+         Then, create a unique label and emit a branch if false.
 
-     ENDIF: Emit the label.
+    ENDIF: Emit the label.
 ```
 
 These actions  can be shown  very concisely if  we write the  syntax this
 way:
                               
 ```
-     IF
-     <condition>    { Condition;
-                      L = NewLabel;
-                      Emit(Branch False to L); }
-     <block>
-     ENDIF          { PostLabel(L) }
+    IF
+    <condition>    { Condition;
+                     L = NewLabel;
+                     Emit(Branch False to L); }
+    <block>
+    ENDIF          { PostLabel(L) }
 ```
 
 This is an example of  *syntax-directed translation*. We've been doing it
@@ -528,8 +553,8 @@ remember), the zero  flag will be set.  The code for "Branch  on zero" is
 BEQ. So for our purposes here,
 
 ```
-               BEQ  <=> Branch if false
-               BNE  <=> Branch if true
+    BEQ  <=> Branch if false
+    BNE  <=> Branch if true
 ```
 
 It's the  nature of the beast  that most of  the branches we see  will be
@@ -574,7 +599,7 @@ define.
 
 The code for **DoIf** is:
 
-### Pascal variant: implementing `DoIf()` 
+### Pascal variant: implementing `DoIf` procedure
 
 ```
 {--------------------------------------------------------------}
@@ -585,18 +610,18 @@ procedure Block; Forward;
 procedure DoIf;
 var L: string;
 begin
-   Match('i');
-   L := NewLabel;
-   Condition;
-   EmitLn('BEQ ' + L);
-   Block;
-   Match('e');
-   PostLabel(L);
+    Match('i');
+    L := NewLabel;
+    Condition;
+    EmitLn('BEQ ' + L);
+    Block;
+    Match('e');
+    PostLabel(L);
 end;
 {--------------------------------------------------------------}
 ```
 
-### C variant: implementing `doif()` 
+### C variant: implementing `doif()` function
 
 ```
 //////////////////////////////////////////////////////////////////////////////
@@ -625,7 +650,7 @@ void doif (void)
 }
 ```
 
-### BASH variant: implementing `doif()` 
+### BASH variant: implementing `doif()` function
 
 ```
 ##############################################################################
@@ -647,7 +672,7 @@ function doif()
 Add this routine to your program, and change **block** to reference it as
 follows:
 
-### Pascal variant: updating the `Block()` procedure
+### Pascal variant: updating the `Block` procedure
 
 ```
 {--------------------------------------------------------------}
@@ -655,12 +680,12 @@ follows:
 
 procedure Block;
 begin
-   while not(Look in ['e']) do begin
-      case Look of
-       'i': DoIf;
-       'o': Other;
-      end;
-   end;
+    while not(Look in ['e']) do begin
+        case Look of
+            'i': DoIf;
+            'o': Other;
+        end;
+    end;
 end;
 {--------------------------------------------------------------}
 ```
@@ -729,7 +754,7 @@ the following routine:
 
 Procedure Condition;
 begin
-   EmitLn('<condition>');
+    EmitLn('<condition>');
 end;
 {--------------------------------------------------------------}
 ```
@@ -739,8 +764,8 @@ end;
 ```
 //////////////////////////////////////////////////////////////////////////////
 //
-// condition(): parse and translate a boolean condition (this version is a
-//              dummy)
+// condition(): parse and translate a boolean condition  (this version is
+//              a  dummy)
 //
 void condition (void)
 {
@@ -753,8 +778,8 @@ void condition (void)
 ```
 ##############################################################################
 ##
-## condition(): parse and translate a boolean condition (this version is a
-##              dummy)
+## condition(): parse and translate a boolean condition  (this version is
+##              a dummy)
 ##
 function condition()
 {
@@ -766,7 +791,7 @@ Insert this procedure  in your program just before **DoIf**.  Now run the
 program. Try a string like:
 
 ```
-     aibece
+    aibece
 ```
 
 As you can  see, the parser seems to recognize  the construct and inserts
@@ -774,7 +799,7 @@ the object code  at the right places.  Now try a set  of nested **IF**'s,
 like:
 
 ```
-     aibicedefe
+    aibicedefe
 ```
 
 It's starting to look real, eh?
@@ -785,7 +810,7 @@ extend the parser to include other constructs. The first (and also one of
 the trickiest) is to add the **ELSE** clause to **IF**. The BNF is
 
 ```
-     IF <condition> <block> [ ELSE <block>] ENDIF
+    IF <condition> <block> [ ELSE <block>] ENDIF
 ```
 
 The tricky  part arises simply because  there is an optional  part, which
@@ -796,26 +821,26 @@ doesn't occur in the other constructs.
 The corresponding output code should be:
 
 ```
-          <condition>
-          BEQ L1
-          <block>
-          BRA L2
-     L1:  <block>
-     L2:  ...
+     <condition>
+     BEQ L1
+     <block>
+     BRA L2
+L1:  <block>
+L2:  ...
 ```
 
 This leads us to the following syntax-directed translation:
 
 ``
-     IF
-     <condition>    { L1 = NewLabel;
-                      L2 = NewLabel;
-                      Emit(BEQ L1) }
-     <block>
-     ELSE           { Emit(BRA L2);
-                      PostLabel(L1) }
-     <block>
-     ENDIF          { PostLabel(L2) }
+    IF
+    <condition>    { L1 = NewLabel;
+                     L2 = NewLabel;
+                     Emit(BEQ L1) }
+    <block>
+    ELSE           { Emit(BRA L2);
+                     PostLabel(L1) }
+    <block>
+    ENDIF          { PostLabel(L2) }
 ```
 
 ### Vircon32 details
@@ -823,29 +848,29 @@ This leads us to the following syntax-directed translation:
 The corresponding output code should be:
 
 ```
-          <condition>
-          JT    R0,    L1
-          <block>
-          JMP   L2
-     L1:  <block>
-     L2:  ...
+    <condition>
+    JT    R0,    L1
+    <block>
+    JMP   L2
+L1:  <block>
+L2:  ...
 ```
 
 This  leads us  to the  following syntax-directed  translation (in  C and
 BASH):
 
 ```
-     IF
-     <condition>    { L1  = newlabel();  // BASH: L1=$(newlabel)
-                      L2  = newlabel();  // BASH: L2=$(newlabel)
-                      sprintf (str, "JT    R0,    %s", L1);
-                      emit (str); } 
-     <block>
-     ELSE           { sprintf (str, "JMP   %s", L2);
-                      emit (str);
-                      postlabel (L1); }
-     <block>
-     ENDIF          { postlabel (L2); }
+    IF
+    <condition>    { L1  = newlabel();  // BASH: L1=$(newlabel)
+                     L2  = newlabel();  // BASH: L2=$(newlabel)
+                     sprintf (str, "JT    R0,    %s", L1);
+                     emit (str); } 
+    <block>
+    ELSE           { sprintf (str, "JMP   %s", L2);
+                     emit (str);
+                     postlabel (L1); }
+    <block>
+    ENDIF          { postlabel (L2); }
 ```
 
 Comparing this with the case for an *ELSE-less* **IF** gives us a clue as
@@ -861,21 +886,21 @@ use an '**l**' for the **ELSE**, since '**e**' is otherwise occupied):
 procedure DoIf;
 var L1, L2: string;
 begin
-   Match('i');
-   Condition;
-   L1 := NewLabel;
-   L2 := L1;
-   EmitLn('BEQ ' + L1);
-   Block;
-   if Look = 'l' then begin
-      Match('l');
-      L2 := NewLabel;
-      EmitLn('BRA ' + L2);
-      PostLabel(L1);
-      Block;
-   end;
-   Match('e');
-   PostLabel(L2);
+    Match('i');
+    Condition;
+    L1 := NewLabel;
+    L2 := L1;
+    EmitLn('BEQ ' + L1);
+    Block;
+    if Look = 'l' then begin
+        Match('l');
+        L2 := NewLabel;
+        EmitLn('BRA ' + L2);
+        PostLabel(L1);
+        Block;
+    end;
+    Match('e');
+    PostLabel(L2);
 end;
 {--------------------------------------------------------------}
 ```
@@ -959,14 +984,14 @@ code.
 Give it a try now.  Try something like:
 
 ```
-   aiblcede
+    aiblcede
 ```
 
 Did it work? Now,  just to be sure we haven't  broken the ELSE-less case,
 try:
 
 ```
-   aibece
+    aibece
 ```
 
 Now try some nested **IF**'s. Try anything you like, including some badly
@@ -979,7 +1004,7 @@ The next  type of  statement should  be easy, since  we already  have the
 process down pat. The syntax I've chosen for the **WHILE** statement is:
 
 ```
-          WHILE <condition> <block> ENDWHILE
+    WHILE <condition> <block> ENDWHILE
 ```
 
 I know,  I know, we don't  REALLY need separate kinds  of terminators for
@@ -996,11 +1021,11 @@ Now, consider what the **WHILE** should be translated into. It should be:
 ### M68000 details
 
 ```
-     L1:  <condition>
-          BEQ L2
-          <block>
-          BRA L1
-     L2:
+L1:  <condition>
+     BEQ L2
+     <block>
+     BRA L1
+L2:
 ```
 
 
@@ -1008,36 +1033,36 @@ As before, comparing the two  representations gives us the actions needed
 at each point.
 
 ```
-     WHILE          { L1 = NewLabel;
-                      PostLabel(L1) }
-     <condition>    { Emit(BEQ L2) }
-     <block>
-     ENDWHILE       { Emit(BRA L1);
-                      PostLabel(L2) }
+    WHILE          { L1 = NewLabel;
+                     PostLabel(L1) }
+    <condition>    { Emit(BEQ L2) }
+    <block>
+    ENDWHILE       { Emit(BRA L1);
+                     PostLabel(L2) }
 ```
 
 ### Vircon32 details
 
 ```
-     L1:  <condition>
-          JT    R0,    L2
-          <block>
-          JMP   L1
-     L2:
+L1:  <condition>
+     JT    R0,    L2
+     <block>
+     JMP   L1
+L2:
 ```
 
 As before, comparing the two  representations gives us the actions needed
 at each point:
 
 ```
-     WHILE          { L1 = newlabel ();
-                      postlabel (L1); }
-     <condition>    { sprintf (str, "JT    R0,    %s", L2);
-                      emit (str); }
-     <block>
-     ENDWHILE       { sprintf (str, "JMP   %s", L1);
-                      emit (BRA L1);
-                      postlabel (L2); }
+    WHILE          { L1 = newlabel ();
+                     postlabel (L1); }
+    <condition>    { sprintf (str, "JT    R0,    %s", L2);
+                     emit (str); }
+    <block>
+    ENDWHILE       { sprintf (str, "JMP   %s", L1);
+                     emit (BRA L1);
+                     postlabel (L2); }
 ```
 
 The code follows immediately from the syntax:
@@ -1051,206 +1076,422 @@ The code follows immediately from the syntax:
 procedure DoWhile;
 var L1, L2: string;
 begin
-   Match('w');
-   L1 := NewLabel;
-   L2 := NewLabel;
-   PostLabel(L1);
-   Condition;
-   EmitLn('BEQ ' + L2);
-   Block;
-   Match('e');
-   EmitLn('BRA ' + L1);
-   PostLabel(L2);
+    Match('w');
+    L1 := NewLabel;
+    L2 := NewLabel;
+    PostLabel(L1);
+    Condition;
+    EmitLn('BEQ ' + L2);
+    Block;
+    Match('e');
+    EmitLn('BRA ' + L1);
+    PostLabel(L2);
 end;
 {--------------------------------------------------------------}
 ```
 
+### C variant: implementing the `dowhile()` procedure
+
+```
+//////////////////////////////////////////////////////////////////////////////
+//
+// dowhile(): parse and translate a WHILE statement
+//
+void dowhile (void)
+{
+    uint8_t *L1  = NULL;
+    uint8_t *L2  = NULL;
+    uint8_t  str[32];
+
+    match ('w');
+
+    L1           = newlabel ();
+    L2           = newlabel ();
+
+    postlabel (L1);
+    condition ();
+
+    sprintf (str, "JT    R0,    %s", L2);
+    emitline (str);
+
+    block ();
+
+    match ('e');
+
+    sprintf (str, "JMP   %s", L1);
+    emitline (str);
+
+    postlabel (L2);
+}
+```
+
+### BASH variant: implementing the `dowhile()` procedure
+
+```
+##############################################################################
+##
+## dowhile(): parse and translate a WHILE statement
+##
+function dowhile ()
+{
+    match "w"
+
+    L1=$(newlabel)
+    L2=$(newlabel)
+
+    postlabel "${L1}"
+
+    condition
+    emitline "JT    R0,    ${L2}"
+    block
+    match "e"
+    emitline "JMP   ${L1}"
+
+    postlabel "${L2}"
+}
+```
 
 Since we've  got a  new statement,  we have to  add a  call to  it within
 procedure Block:
 
+### Pascal variant: updating `Block` procedure
 
+```
 {--------------------------------------------------------------}
 { Recognize and Translate a Statement Block }
 
 procedure Block;
 begin
-   while not(Look in ['e', 'l']) do begin
-      case Look of
-       'i': DoIf;
-       'w': DoWhile;
-       else Other;
-      end;
-   end;
+    while not(Look in ['e', 'l']) do begin
+        case Look of
+            'i': DoIf;
+            'w': DoWhile;
+        else Other;
+        end;
+    end;
 end;
 {--------------------------------------------------------------}
+```
 
+### C variant: updating `block()` function
+
+```
+//////////////////////////////////////////////////////////////////////////////
+//
+// block(): recognize and translate a statement block
+//
+void block (void)
+{
+    while ((lookahead != 'e') ||
+           (lookahead != 'l'))
+    {
+        switch (lookahead)
+        {
+            case 'i':
+                doif ();
+                break;
+
+            case 'w':
+                dowhile ();
+                break;
+
+            default:
+                other ();
+                break;
+        }
+    }
+}
+```
+
+### BASH variant: updating `block()` function
+
+```
+##############################################################################
+##
+## block(): recognize and translate a statement block
+##
+function block()
+{
+    lookahead=$(cat ${TMPFILE}.lookahead)
+    while [ ! "${lookahead}" = "e" ] || [ ! "${lookahead}" = "l" ]; do
+
+        case "${lookahead}" in
+            'i')
+                doif
+                ;;
+            'w')
+                doif
+                ;;
+            *)
+                other
+                ;;
+        esac
+    done
+}
+```
 
 No other changes are necessary.
 
-OK, try the new program.  Note that this  time,  the  <condition>
-code is INSIDE the upper label, which is just where we wanted it.
-Try some nested loops.  Try some loops within IF's, and some IF's
-within loops.  If you get  a  bit  confused as to what you should
-type, don't be discouraged:  you  write  bugs in other languages,
-too, don't you?  It'll look a lot  more  meaningful  when  we get
-full keywords.
+OK, try the  new program. Note that this time,  the *<condition>* code is
+INSIDE the upper label, which is just where we wanted it. Try some nested
+loops. Try some loops within IF's, and some IF's within loops. If you get
+a bit  confused as  to what  you should type,  don't be  discouraged: you
+write bugs  in other  languages, too,  don't you? It'll  look a  lot more
+meaningful when we get full keywords.
 
-I hope by now that you're beginning to  get  the  idea  that this
-really  IS easy.  All we have to do to accomodate a new construct
-is to work out  the  syntax-directed translation of it.  The code
-almost falls out  from  there,  and  it doesn't affect any of the
-other routines.  Once you've gotten the feel of the thing, you'll
-see that you  can  add  new  constructs  about as fast as you can
-dream them up.
+I hope by now  that you're beginning to get the idea  that this really IS
+easy. All we have to do to accomodate  a new construct is to work out the
+syntax-directed translation of it. The  code almost falls out from there,
+and it doesn't  affect any of the other routines.  Once you've gotten the
+feel of the  thing, you'll see that  you can add new  constructs about as
+fast as you can dream them up.
 
+## THE LOOP STATEMENT
 
-THE LOOP STATEMENT
+We could stop right here, and have a language that works. It's been shown
+many  times that  a high-order  language  with only  two constructs,  the
+**IF** and  the **WHILE**,  is sufficient to  write structured  code. But
+we're on a roll now, so let's richen up the repertoire a bit.
 
-We could stop right here, and  have  a language that works.  It's
-been  shown  many  times that a high-order language with only two
-constructs, the IF and the WHILE, is sufficient  to  write struc-
-tured  code.   But we're on a roll now, so let's  richen  up  the
-repertoire a bit.
+This construct is even easier, since it  has no condition test at all ...
+it's an  infinite loop.  What's the point  of such a  loop? Not  much, by
+itself, but  later on we're going  to add a **BREAK**  command, that will
+give  us a  way out.  This makes  the language  considerably richer  than
+Pascal, which has  no break, and also avoids the  funny WHILE(1) or WHILE
+TRUE of C and Pascal.
 
-This construct is even easier, since it has no condition  test at
-all  ... it's an infinite loop.  What's the point of such a loop?
-Not much, by  itself,  but  later  on  we're going to add a BREAK
-command,  that  will  give us a way out.  This makes the language
-considerably richer than Pascal, which  has  no  break,  and also
-avoids the funny  WHILE(1) or WHILE TRUE of C and Pascal.
-
-The syntax is simply
+The syntax is simply:
 
 ```
-     LOOP <block> ENDLOOP
+    LOOP <block> ENDLOOP
 ```
 
-and the syntax-directed translation is:
+... and the syntax-directed translation is:
 
+```
+   LOOP       { L = NewLabel;
+                PostLabel(L)  }
+   <block>
+   ENDLOOP    { Emit(BRA L)   }
+```
 
-     LOOP           { L = NewLabel;
-                      PostLabel(L) }
-     <block>
-     ENDLOOP        { Emit(BRA L }
+The corresponding  code is shown  below. Since I've already  used '**l**'
+for the  **ELSE**, I've used the  last letter, '**p**', as  the "keyword"
+this time.
 
+### Pascal variant: implementing `DoLoop` procedure
 
-The corresponding code is shown below.  Since  I've  already used
-'l'  for  the  ELSE, I've used  the  last  letter,  'p',  as  the
-"keyword" this time.
-
-
+```
 {--------------------------------------------------------------}
 { Parse and Translate a LOOP Statement }
 
 procedure DoLoop;
 var L: string;
 begin
-   Match('p');
-   L := NewLabel;
-   PostLabel(L);
-   Block;
-   Match('e');
-   EmitLn('BRA ' + L);
+    Match('p');
+    L := NewLabel;
+    PostLabel(L);
+    Block;
+    Match('e');
+    EmitLn('BRA ' + L);
 end;
 {--------------------------------------------------------------}
-                             
+```
 
-When you insert this routine, don't forget to add a line in Block
-to call it.
+### C variant: implementing `doloop()` function
 
+```
+//////////////////////////////////////////////////////////////////////////////
+//
+// doloop(): parse and translate a LOOP statement
+//
+function doloop()
+{
+    uint8_t *L  = NULL;
+    uint8_t  str[32];
 
+    match ('p');
 
+    L           = newlabel ();
+    postlabel (L);
 
-REPEAT-UNTIL
+    block ();
 
-Here's one construct that I lifted right from Pascal.  The syntax
-is
+    match ('e');
 
+    sprintf (str, "JMP   %s", L);
+    emitline (str);
+}
+```
 
-     REPEAT <block> UNTIL <condition>  ,
+### BASH variant: implementing `doloop()` function
 
+```
+##############################################################################
+##
+## doloop(): parse and translate a LOOP statement
+##
+function doloop()
+{
+    match "p"
+    L=$(newlabel)
+    postlabel "${L}"
+    block
+    match "e"
+    emitline "JMP   ${L}"
+}
+```
 
-and the syntax-directed translation is:
+When you insert this routine, don't forget  to add a line in **Block** to
+call it.
 
+## REPEAT-UNTIL
 
-     REPEAT         { L = NewLabel;
-                      PostLabel(L) }
-     <block>
-     UNTIL
-     <condition>    { Emit(BEQ L) }
+Here's one construct that I lifted right from Pascal. The syntax is:
 
+```
+    REPEAT <block> UNTIL <condition>
+```
+
+... and the syntax-directed translation is:
+
+```
+  REPEAT         { L = NewLabel;    |  REPEAT       { L=(newlabel);
+                   PostLabel(L)  }  |                 postlabel "${L}" }
+  <block>                           |  <block>
+  UNTIL                             |  UNTIL
+  <condition>    { Emit(BEQ L)   }  |  <condition>  { emit "IEQ R0, R1";
+                                    |                 emit "JT  R0, ${L}" }
+```
 
 As usual, the code falls out pretty easily:
 
+### Pascal variant: implementing `DoRepeat` procedure
 
+```
 {--------------------------------------------------------------}
 { Parse and Translate a REPEAT Statement }
 
 procedure DoRepeat;
 var L: string;
 begin
-   Match('r');
-   L := NewLabel;
-   PostLabel(L);
-   Block;
-   Match('u');
-   Condition;
-   EmitLn('BEQ ' + L);
+    Match('r');
+    L := NewLabel;
+    PostLabel(L);
+    Block;
+    Match('u');
+    Condition;
+    EmitLn('BEQ ' + L);
 end;
 {--------------------------------------------------------------}
+```
 
+### C variant: implementing `dorepeat()` function
 
-As  before, we have to add the call  to  DoRepeat  within  Block.
-This time, there's a difference, though.  I decided  to  use  'r'
-for REPEAT (naturally), but I also decided to use 'u'  for UNTIL.
-This means that the 'u' must be added to the set of characters in
-the while-test.  These  are  the  characters  that signal an exit
-from the current  block  ... the "follow" characters, in compiler
-jargon.
+```
+//////////////////////////////////////////////////////////////////////////////
+//
+// dorepeat(): parse and translate a REPEAT statement
+//
+function doloop()
+{
+    uint8_t *L  = NULL;
+    uint8_t  str[32];
 
+    match ('r');
 
+    L           = newlabel ();
+
+    postlabel (L);
+
+    block ();
+    match ('u');
+
+    condition ();
+
+    sprintf (str, "IEQ   R0,    R1");
+    emitline (str);
+    sprintf (str, "JT    R0,    %s", L);
+    emitline (str);
+}
+```
+
+### BASH variant: implementing `dorepeat()` function
+
+```
+##############################################################################
+##
+## dorepeat(): parse and translate a REPEAT statement
+##
+function doloop()
+{
+    match "r"
+
+    L=$(newlabel)
+    postlabel "${L}"
+
+    block
+
+    match "u"
+
+    condition
+
+    emitline "IEQ   R0,    R1"
+    emitline "JT    R0,    ${L}"
+}
+```
+
+As before, we have to add the call to **DoRepeat** within **Block**. This
+time,  there's  a  difference,  though.  I decided  to  use  '**r**'  for
+**REPEAT** (naturally), but I also  decided to use '**u**' for **UNTIL**.
+This means that the '**u**' must be added to the set of characters in the
+while-test. These are the characters that signal an exit from the current
+block ... the "follow" characters, in compiler jargon.
+
+### Pascal variant: updating `Block` procedure
+
+```
 {--------------------------------------------------------------}
 { Recognize and Translate a Statement Block }
 
 procedure Block;
 begin
-   while not(Look in ['e', 'l', 'u']) do begin
-      case Look of
-       'i': DoIf;
-       'w': DoWhile;
-       'p': DoLoop;
-       'r': DoRepeat;
-       else Other;
-      end;
-   end;
+    while not(Look in ['e', 'l', 'u']) do begin
+        case Look of
+            'i': DoIf;
+            'w': DoWhile;
+            'p': DoLoop;
+            'r': DoRepeat;
+            else Other;
+        end;
+    end;
 end;
 {--------------------------------------------------------------}
+```
 
+## THE FOR LOOP
 
-THE FOR LOOP
+The **FOR** loop is  a very handy one to have around, but  it's a bear to
+translate. That's  not so much because  the construct itself is  hard ...
+it's only a loop after all ...  but simply because it's hard to implement
+in assembler language.  Once the code is figured out,  the translation is
+straightforward enough.
 
-The FOR loop  is a very handy one to have around, but it's a bear
-to translate.  That's not so much because the construct itself is
-hard ... it's only a loop  after  all ... but simply because it's
-hard to implement  in  assembler  language.    Once  the  code is
-figured out, the translation is straightforward enough.
+C fans love the  FOR-loop of that language (and, in  fact, it's easier to
+code), but I've chosen instead a syntax  very much like the one from good
+ol' BASIC:
 
-C fans love  the  FOR-loop  of  that language (and, in fact, it's
-easier to code), but I've chosen instead a syntax very  much like
-the one from good ol' BASIC:
+```
+    FOR <ident> = <expr1> TO <expr2> <block> ENDFOR
+```
 
-
-     FOR <ident> = <expr1> TO <expr2> <block> ENDFOR
-
-
-The translation of a FOR loop  can  be just about as difficult as
-you choose  to  make  it,  depending  upon  the way you decide to
-define  the rules as to how to handle the limits.  Does expr2 get
-evaluated  every time through the loop, for  example,  or  is  it
-treated as a constant limit?   Do  you always go through the loop
-at least once,  as  in  FORTRAN,  or  not? It gets simpler if you
-adopt the point of view that the construct is equivalent to:
+The translation of a  **FOR** loop can be just about  as difficult as you
+choose to make it, depending upon the  way you decide to define the rules
+as  to how  to handle  the limits.  Does expr2  get evaluated  every time
+through the loop, for  example, or is it treated as  a constant limit? Do
+you always go through  the loop at least once, as in  FORTRAN, or not? It
+gets  simpler if  you  adopt the  point  of view  that  the construct  is
+equivalent to:
 
 
      <ident> = <expr1>
