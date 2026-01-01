@@ -19,6 +19,7 @@ BASH and C alongside the originally-provided Pascal code.
   * [THE LOOP STATEMENT](#THE-LOOP-STATEMENT)
   * [REPEAT-UNTIL](#REPEAT-UNTIL)
   * [THE FOR LOOP](#THE-FOR-LOOP)
+  * [THE DO STATEMENT](#THE-DO-STATEMENT)
 
 ## INTRODUCTION
 
@@ -1039,7 +1040,6 @@ L1:  <condition>
 L2:
 ```
 
-
 As before, comparing the two  representations gives us the actions needed
 at each point.
 
@@ -1404,7 +1404,7 @@ end;
 //
 // dorepeat(): parse and translate a REPEAT statement
 //
-function doloop()
+function dorepeat()
 {
     uint8_t *L  = NULL;
     uint8_t  str[32];
@@ -1434,7 +1434,7 @@ function doloop()
 ##
 ## dorepeat(): parse and translate a REPEAT statement
 ##
-function doloop()
+function dorepeat()
 {
     match "r"
 
@@ -1480,6 +1480,80 @@ end;
 {--------------------------------------------------------------}
 ```
 
+### C variant: updating `block()` function
+
+```
+//////////////////////////////////////////////////////////////////////////////
+//
+// block(): recognize and translate a statement block
+//
+function doloop()
+{
+    while ((lookahead != 'e') ||
+           (lookahead != 'l') ||
+           (lookahead != 'u'))
+    {
+        switch (lookahead)
+        {
+            case 'i':
+                doif ();
+                break;
+
+            case 'w':
+                dowhile ();
+                break;
+
+            case 'p':
+                doloop ();
+                break;
+
+            case 'r':
+                dorepeat ();
+                break;
+
+            default:
+                other ();
+                break;
+        }
+    }
+}
+```
+
+### BASH variant: updating `block()` function
+
+```
+##############################################################################
+##
+## block(): recognize and translate a statement block
+##
+function block()
+{
+    lookahead=$(cat ${TMPFILE}.lookahead)
+    while [ ! "${lookahead}" = "e" ] || \
+          [ ! "${lookahead}" = "l" ] || \
+          [ ! "${lookahead}" = "u" ]; do
+
+        case "${lookahead}" in
+            'i')
+                doif
+                ;;
+            'w')
+                dowhile
+                ;;
+            'p')
+                doloop
+                ;;
+            'r')
+                dorepeat
+                ;;
+            *)
+                other
+                ;;
+        esac
+    done
+}
+```
+
 ## THE FOR LOOP
 
 The **FOR** loop is  a very handy one to have around, but  it's a bear to
@@ -1505,54 +1579,78 @@ gets  simpler if  you  adopt the  point  of view  that  the construct  is
 equivalent to:
 
 
-     <ident> = <expr1>
-     TEMP = <expr2>
-     WHILE <ident> <= TEMP
-     <block>
-     ENDWHILE
+```
+    <ident> = <expr1>
+    TEMP = <expr2>
+    WHILE <ident> <= TEMP
+    <block>
+    ENDWHILE
+```
 
-
-Notice that with this definition of the loop, <block> will not be
-executed at all if <expr1> is initially larger than <expr2>.
+Notice that  with this definition  of the  loop, **<block>** will  not be
+executed at all if **<expr1>** is initially larger than **<expr2>**.
                              
-The 68000 code needed to do this is trickier than  anything we've
-done so far.  I had a couple  of  tries  at  it, putting both the
-counter  and  the    upper limit on the stack, both in registers,
-etc.  I  finally  arrived  at  a hybrid arrangement, in which the
-loop counter is in memory (so that it can be accessed  within the
-loop), and the upper limit is on the stack.  The  translated code
-came out like this:
+### M68000 details
 
+The 68000 code needed to do this  is trickier than anything we've done so
+far. I  had a couple  of tries  at it, putting  both the counter  and the
+upper limit on the stack, both in  registers, etc. I finally arrived at a
+hybrid arrangement,  in which the loop  counter is in memory  (so that it
+can be accessed  within the loop), and  the upper limit is  on the stack.
+The translated code came out like this:
 
-          <ident>             get name of loop counter
-          <expr1>             get initial value
-          LEA <ident>(PC),A0  address the loop counter
-          SUBQ #1,D0          predecrement it
-          MOVE D0,(A0)        save it
-          <expr1>             get upper limit
-          MOVE D0,-(SP)       save it on stack
+```
+     <ident>             get name of loop counter
+     <expr1>             get initial value
+     LEA <ident>(PC),A0  address the loop counter
+     SUBQ #1,D0          predecrement it
+     MOVE D0,(A0)        save it
+     <expr1>             get upper limit
+     MOVE D0,-(SP)       save it on stack
 
-     L1:  LEA <ident>(PC),A0  address loop counter
-          MOVE (A0),D0        fetch it to D0
-          ADDQ #1,D0          bump the counter
-          MOVE D0,(A0)        save new value
-          CMP (SP),D0         check for range
-          BLE L2              skip out if D0 > (SP)
-          <block>
-          BRA L1              loop for next pass
-     L2:  ADDQ #2,SP          clean up the stack
+L1:  LEA <ident>(PC),A0  address loop counter
+     MOVE (A0),D0        fetch it to D0
+     ADDQ #1,D0          bump the counter
+     MOVE D0,(A0)        save new value
+     CMP (SP),D0         check for range
+     BLE L2              skip out if D0 > (SP)
+     <block>
+     BRA L1              loop for next pass
+L2:  ADDQ #2,SP          clean up the stack
+```
 
+### Vircon32 details
 
-Wow!    That  seems like a lot of code ...  the  line  containing
-<block> seems to almost get lost.  But that's the best I could do
-with it.   I guess it helps to keep in mind that it's really only
-sixteen  words,  after  all.  If  anyone else can  optimize  this
-better, please let me know.
+```
+     <ident>                      ; get name of loop counter
+     <expr1>                      ; get initial value
+     LEA   R1,      [R2+<ident>]  ; address the loop counter
+     ISUB  R0,      1             ; predecrement it
+     MOV   [R1],    R0            ; save it
+     <expr1>                      ; get upper limit
+     PUSH  R0                     ; save it on stack
 
-Still, the parser  routine  is  pretty  easy now that we have the
-code:
+L1:  LEA <ident>(PC),A0  address loop counter
+     MOVE (A0),D0        fetch it to D0
+     ADDQ #1,D0          bump the counter
+     MOVE D0,(A0)        save new value
+     CMP (SP),D0         check for range
+     BLE L2              skip out if D0 > (SP)
+     <block>
+     BRA L1              loop for next pass
+L2:  ADDQ #2,SP          clean up the stack
+```
 
+Wow! That  seems like a lot  of code ... the  line containing **<block>**
+seems to almost get lost. But that's the best I could do with it. I guess
+it helps to keep in mind that  it's really only sixteen words, after all.
+If anyone else can optimize this better, please let me know.
 
+Still, the parser routine is pretty easy now that we have the code:
+
+### Pascal variant: implementing `DoFor` procedure
+
+```
 {--------------------------------------------------------------}
 { Parse and Translate a FOR Statement }
 
@@ -1560,37 +1658,39 @@ procedure DoFor;
 var L1, L2: string;
     Name: char;
 begin
-   Match('f');
-   L1 := NewLabel;
-   L2 := NewLabel;
-   Name := GetName;
-   Match('=');
-   Expression;
-   EmitLn('SUBQ #1,D0');
-   EmitLn('LEA ' + Name + '(PC),A0');
-   EmitLn('MOVE D0,(A0)');
-   Expression;
-   EmitLn('MOVE D0,-(SP)');
-   PostLabel(L1);
-   EmitLn('LEA ' + Name + '(PC),A0');
-   EmitLn('MOVE (A0),D0');
-   EmitLn('ADDQ #1,D0');
-   EmitLn('MOVE D0,(A0)');
-   EmitLn('CMP (SP),D0');
-   EmitLn('BGT ' + L2);
-   Block;
-   Match('e');
-   EmitLn('BRA ' + L1);
-   PostLabel(L2);
-   EmitLn('ADDQ #2,SP');
+    Match('f');
+    L1 := NewLabel;
+    L2 := NewLabel;
+    Name := GetName;
+    Match('=');
+    Expression;
+    EmitLn('SUBQ #1,D0');
+    EmitLn('LEA ' + Name + '(PC),A0');
+    EmitLn('MOVE D0,(A0)');
+    Expression;
+    EmitLn('MOVE D0,-(SP)');
+    PostLabel(L1);
+    EmitLn('LEA ' + Name + '(PC),A0');
+    EmitLn('MOVE (A0),D0');
+    EmitLn('ADDQ #1,D0');
+    EmitLn('MOVE D0,(A0)');
+    EmitLn('CMP (SP),D0');
+    EmitLn('BGT ' + L2);
+    Block;
+    Match('e');
+    EmitLn('BRA ' + L1);
+    PostLabel(L2);
+    EmitLn('ADDQ #2,SP');
 end;
 {--------------------------------------------------------------}
+```
 
+Since we don't have expressions in this  parser, I used the same trick as
+for Condition, and wrote the routine:
 
-Since we don't have  expressions  in this parser, I used the same
-trick as for Condition, and wrote the routine
+### Pascal variant: implementing `Expression` procedure
 
-
+```
 {--------------------------------------------------------------}
 { Parse and Translate an Expression }
 { This version is a dummy }
@@ -1600,19 +1700,20 @@ begin
    EmitLn('<expr>');
 end;
 {--------------------------------------------------------------}
+```
 
+Give it  a try. Once  again, don't forget to  add the call  in **Block**.
+Since we don't have any input  for the dummy version of **Expression**, a
+typical input line would look something like
 
-Give it a try.  Once again,  don't  forget  to  add  the  call in
-Block.    Since  we don't have any input for the dummy version of
-Expression, a typical input line would look something like
-
+```
      afi=bece
+```
 
-Well, it DOES generate a lot of code, doesn't it?    But at least
-it's the RIGHT code.
+Well, it *DOES* generate a lot of code, doesn't it? But at least it's the
+*RIGHT* code.
 
-
-THE DO STATEMENT
+## THE DO STATEMENT
 
 All this made me wish for a simpler version of the FOR loop.  The
 reason for all the code  above  is  the  need  to  have  the loop
