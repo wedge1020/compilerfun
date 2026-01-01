@@ -20,6 +20,8 @@ BASH and C alongside the originally-provided Pascal code.
   * [REPEAT-UNTIL](#REPEAT-UNTIL)
   * [THE FOR LOOP](#THE-FOR-LOOP)
   * [THE DO STATEMENT](#THE-DO-STATEMENT)
+  * [THE BREAK STATEMENT](#THE-BREAK-STATEMENT)
+  * [CONCLUSION](#CONCLUSION)
 
 ## INTRODUCTION
 
@@ -173,7 +175,7 @@ Armed with these ideas,  we can proceed to build up  our parser. The code
 for a program (we have to call it **DoProgram**, or Pascal will complain,
 is:
 
-### Pascal variant: implementing `DoProgram` procedure 
+### Pascal variant: implementing `DoProgram` procedure
 
 ```
 {--------------------------------------------------------------}
@@ -531,7 +533,7 @@ associated with each of the keywords in the statement:
 
 These actions  can be shown  very concisely if  we write the  syntax this
 way:
-                              
+
 ```
     IF
     <condition>    { Condition;
@@ -876,7 +878,7 @@ BASH):
     <condition>    { L1  = newlabel();  // BASH: L1=$(newlabel)
                      L2  = newlabel();  // BASH: L2=$(newlabel)
                      sprintf (str, "JT    R0,    %s", L1);
-                     emit (str); } 
+                     emit (str); }
     <block>
     ELSE           { sprintf (str, "JMP   %s", L2);
                      emit (str);
@@ -1589,7 +1591,7 @@ equivalent to:
 
 Notice that  with this definition  of the  loop, **<block>** will  not be
 executed at all if **<expr1>** is initially larger than **<expr2>**.
-                             
+
 ### M68000 details
 
 The 68000 code needed to do this  is trickier than anything we've done so
@@ -1630,15 +1632,17 @@ L2:  ADDQ #2,SP          clean up the stack
      <expr1>                      ; get upper limit
      PUSH  R0                     ; save it on stack
 
-L1:  LEA <ident>(PC),A0  address loop counter
-     MOVE (A0),D0        fetch it to D0
-     ADDQ #1,D0          bump the counter
-     MOVE D0,(A0)        save new value
-     CMP (SP),D0         check for range
-     BLE L2              skip out if D0 > (SP)
+L1:  LEA   R1,      [R2+<ident>]  ; address loop counter
+     MOVE  [R1],    R0            ; fetch it to D0
+     IADD  R0,      1             ; bump the counter
+     MOV   R0,      [R1]          ; save new value
+     POP   R3
+     ILE   R3,      R0            ; check for range
+     PUSH  R3
+     JT    L2                     ; skip out if R0 > upper limit
      <block>
-     BRA L1              loop for next pass
-L2:  ADDQ #2,SP          clean up the stack
+     JMP   L1                     ; loop for next pass
+L2:  POP   R3                     ; clean up the stack
 ```
 
 Wow! That  seems like a lot  of code ... the  line containing **<block>**
@@ -1702,6 +1706,32 @@ end;
 {--------------------------------------------------------------}
 ```
 
+### C variant: implementing `expression()` function
+
+```
+//////////////////////////////////////////////////////////////////////////////
+//
+// expression(): parse and translate an expression
+//
+void expression (void)
+{
+    emitline ("<expr>");
+}
+```
+
+### BASH variant: implementing `expression()` function
+
+```
+##############################################################################
+##
+## expression(): parse and translate an expression
+##
+function expression()
+{
+    emitline "<expr>"
+}
+```
+
 Give it  a try. Once  again, don't forget to  add the call  in **Block**.
 Since we don't have any input  for the dummy version of **Expression**, a
 typical input line would look something like
@@ -1715,30 +1745,51 @@ Well, it *DOES* generate a lot of code, doesn't it? But at least it's the
 
 ## THE DO STATEMENT
 
-All this made me wish for a simpler version of the FOR loop.  The
-reason for all the code  above  is  the  need  to  have  the loop
-counter accessible as a variable within the loop.  If all we need
-is a counting loop to make us go through  something  a  specified
-number of times, but  don't  need  access  to the counter itself,
-there is a much easier solution.  The 68000 has a  "decrement and
-branch nonzero" instruction built in which is ideal for counting.
-For good measure, let's add this construct, too.   This  will  be
-the last of our loop structures.
-                             
+All this made me  wish for a simpler version of the  FOR loop. The reason
+for all the code above is the need to have the loop counter accessible as
+a variable within the loop. If all we  need is a counting loop to make us
+go through something  a specified number of times, but  don't need access
+to the counter itself, there is a much easier solution.
+
+### M68000 details
+
+The 68000 has a "decrement and branch nonzero" instruction built in which
+is ideal for  counting. For good measure, let's add  this construct, too.
+This will be the last of our loop structures.
+
 The syntax and its translation is:
 
+```
+    DO
+    <expr>         { EmitLn('SUBQ #1,D0');
+                     L = NewLabel;
+                     PostLabel(L);
+                     EmitLn('MOVE D0,-(SP)')  }
+    <block>
+    ENDDO          { EmitLn('MOVE (SP)+,D0');
+                     EmitLn('DBRA D0,' + L)   }
+```
 
-     DO
-     <expr>         { Emit(SUBQ #1,D0);
-                      L = NewLabel;
-                      PostLabel(L);
-                      Emit(MOVE D0,-(SP) }
-     <block>
-     ENDDO          { Emit(MOVE (SP)+,D0;
-                      Emit(DBRA D0,L) }
+### Vircon32 details
 
+On  Vircon32, relational  comparisons are  distinctly separate  from jump
+instructions. So, assuming I understand  the M68000 `DBRA` instruction as
+described above, the equivelent should look something like:
 
-That's quite a bit simpler!  The loop will execute  <expr> times.
+```
+    DO
+    <expr>         { emitline ("ISUB  R0,    1");
+                     L  = newlabel ();
+                     postlabel (L);
+                     emitline ("PUSH  R0");       }
+    <block>
+    ENDDO          { emitline ("POP   R0");
+                     emitline ("INE   R0,    0");
+                     sprintf (spr, "JT    R0,    %s", L);
+                     emitline (str);                      }
+```
+
+That's  quite a  bit simpler!  The  loop will  execute **<expr>**  times.
 Here's the code:
 
 
@@ -1761,54 +1812,50 @@ end;
 {--------------------------------------------------------------}
 
 
-I think you'll have to agree, that's a whole lot simpler than the
-classical FOR.  Still, each construct has its place.
+I  think you'll  have  to agree,  that's  a whole  lot  simpler than  the
+classical FOR. Still, each construct has its place.
 
+## THE BREAK STATEMENT
 
-THE BREAK STATEMENT
+Earlier I promised you a  **BREAK** statement to accompany **LOOP**. This
+is one I'm sort  of proud of. On the face of it  a **BREAK** seems really
+tricky. My first  approach was to just  use it as an  extra terminator to
+**Block**, and split all the loops into two parts, just as I did with the
+**ELSE** half of  an **IF**. That turns out not  to work, though, because
+the **BREAK** statement  is almost certainly not going to  show up at the
+same level as the  loop itself. The most likely place  for a **BREAK** is
+right  after an  **IF**,  which would  cause  it to  exit  to the  **IF**
+construct, not the  enclosing loop. WRONG. The **BREAK** has  to exit the
+inner **LOOP**, even if it's nested down into several levels of **IF**s.
 
-Earlier I promised you a BREAK statement to accompany LOOP.  This
-is  one  I'm sort of proud of.  On the face of it a  BREAK  seems
-really  tricky.  My first approach was to just use it as an extra
-terminator to Block, and split all the loops into two parts, just
-as  I did with the ELSE half of an IF.  That  turns  out  not  to
-work, though, because the BREAK statement is almost certainly not
-going to show  up at the same level as the loop itself.  The most
-likely place for a BREAK is right after an IF, which  would cause
-it to exit to the IF  construct,  not the enclosing loop.  WRONG.
-The  BREAK  has  to exit the inner LOOP, even if it's nested down
-into several levels of IFs.
-                             
-My next thought was that I would just store away, in  some global
-variable, the ending label of the innermost loop.    That doesn't
-work  either, because there may be a break  from  an  inner  loop
-followed by a break from an outer one.  Storing the label for the
-inner loop would clobber the label for the  outer  one.    So the
-global variable turned into a stack.  Things were starting to get
-messy.
+My  next  thought was  that  I  would just  store  away,  in some  global
+variable,  the ending  label of  the  innermost loop.  That doesn't  work
+either, because  there may be  a break from an  inner loop followed  by a
+break  from an  outer one.  Storing the  label for  the inner  loop would
+clobber the label for the outer one. So the global variable turned into a
+stack. Things were starting to get messy.
 
-Then  I  decided  to take my own advice.  Remember  in  the  last
-session when  I  pointed  out  how  well  the implicit stack of a
-recursive descent parser was  serving  our needs?  I said that if
-you begin to  see  the  need  for  an external stack you might be
-doing  something  wrong.   Well, I was.  It is indeed possible to
-let the recursion built into  our parser take care of everything,
-and the solution is so simple that it's surprising.
+Then I decided to take my own advice. Remember in the last session when I
+pointed out how  well the *implicit stack of a  recursive descent parser*
+was serving our  needs? I said that if  you begin to see the  need for an
+external stack  you might be  doing something wrong.  Well, I was.  It is
+indeed possible to  let the recursion built into our  parser take care of
+everything, and the solution is so simple that it's surprising.
 
-The secret is  to  note  that  every BREAK statement has to occur
-within a block ... there's no place else for it to be.  So all we
-have  to  do  is to pass into  Block  the  exit  address  of  the
-innermost loop.  Then it can pass the address to the routine that
-translates the  break instruction.  Since an IF statement doesn't
-change the loop level, procedure DoIf doesn't need to do anything
-except  pass the label into ITS blocks (both  of  them).    Since
-loops DO change the level,  each  loop  construct  simply ignores
-whatever label is above it and passes its own exit label along.
+The secret is to note that  every **BREAK** statement has to occur within
+a block ... there's no  place else for it to be. So all  we have to do is
+to  pass into  **Block** the  exit address  of the  innermost loop.  Then
+it  can  pass the  address  to  the  routine  that translates  the  break
+instruction. Since  an **IF**  statement doesn't  change the  loop level,
+procedure **DoIf** doesn't need to do anything except pass the label into
+ITS blocks  (both of them).  Since loops DO  change the level,  each loop
+construct simply  ignores whatever label is  above it and passes  its own
+exit label along.
 
-All  this  is easier to show you than it is to  describe.    I'll
-demonstrate with the easiest loop, which is LOOP:
+All this is easier  to show you than it is  to describe. I'll demonstrate
+with the easiest loop, which is **LOOP**:
 
-
+```
 {--------------------------------------------------------------}
 { Parse and Translate a LOOP Statement }
 
@@ -1825,17 +1872,18 @@ begin
    PostLabel(L2);
 end;
 {--------------------------------------------------------------}
+```
 
 
-Notice that DoLoop now has TWO labels, not just one.   The second
-is to give the BREAK instruction a target to jump  to.   If there
-is no BREAK within  the  loop, we've wasted a label and cluttered
-up things a bit, but there's no harm done.
+Notice that **DoLoop** now has TWO labels, not just one. The second is to
+give  the **BREAK**  instruction a  target  to jump  to. If  there is  no
+**BREAK** within the loop, we've wasted a label and cluttered up things a
+bit, but there's no harm done.
 
-Note also that Block now has a parameter, which  for  loops  will
-always be the exit address.  The new version of Block is:
+Note also that **Block** now has a parameter, which for loops will always
+be the exit address. The new version of **Block** is:
 
-
+```
 {--------------------------------------------------------------}
 { Recognize and Translate a Statement Block }
 
@@ -1855,19 +1903,19 @@ begin
    end;
 end;
 {--------------------------------------------------------------}
+```
 
+Again, notice that all  **Block** does with the label is  to pass it into
+**DoIf** and **DoBreak**. The loop constructs don't need it, because they
+are going to pass their own label anyway.
 
-Again,  notice  that  all Block does with the label is to pass it
-into DoIf and  DoBreak.    The  loop  constructs  don't  need it,
-because they are going to pass their own label anyway.
+The new version of **DoIf** is:
 
-The new version of DoIf is:
-
+```
 {--------------------------------------------------------------}
 { Recognize and Translate an IF Construct }
 
 procedure Block(L: string); Forward;
-
 
 procedure DoIf(L: string);
 var L1, L2: string;
@@ -1889,20 +1937,18 @@ begin
    PostLabel(L2);
 end;
 {--------------------------------------------------------------}
+```
 
+Here, the  only thing that  changes is the  addition of the  parameter to
+procedure **Block**. An **IF** statement  doesn't change the loop nesting
+level, so **DoIf** just passes the label along. No matter how many levels
+of **IF** nesting we have, the same label will be used.
 
-Here,  the  only  thing  that  changes  is  the addition  of  the
-parameter to procedure Block.  An IF statement doesn't change the
-loop  nesting level, so DoIf just passes the  label  along.    No
-matter how many levels of IF nesting we have, the same label will
-be used.
+Now, remember that **DoProgram** also calls **Block**, so it now needs to
+pass it a label.  An attempt to exit the outermost block  is an error, so
+**DoProgram** passes a null label which is caught by **DoBreak**:
 
-Now, remember that DoProgram also calls Block, so it now needs to
-pass it a label.  An  attempt  to  exit the outermost block is an
-error, so DoProgram  passes  a  null  label  which  is  caught by
-DoBreak:
-
-
+```
 {--------------------------------------------------------------}
 { Recognize and Translate a BREAK }
 
@@ -1913,10 +1959,11 @@ begin
       EmitLn('BRA ' + L)
    else Abort('No loop to break from');
 end;
-
-
 {--------------------------------------------------------------}
+```
 
+```
+{--------------------------------------------------------------}
 { Parse and Translate a Program }
 
 procedure DoProgram;
@@ -1926,26 +1973,23 @@ begin
    EmitLn('END')
 end;
 {--------------------------------------------------------------}
+```
 
+That ALMOST  takes care  of everything.  Give it  a try,  see if  you can
+"break"  it <pun>.  Careful,  though. By  this time  we've  used so  many
+letters, it's  hard to think  of characters that aren't  now representing
+reserved words.  Remember: before  you try the  program, you're  going to
+have to edit every occurence of **Block** in the other loop constructs to
+include the new parameter. Do it just like I did for **LOOP**.
 
-That  ALMOST takes care of everything.  Give it a try, see if you
-can "break" it <pun>.  Careful, though.  By this time  we've used
-so many letters, it's hard to think of characters that aren't now
-representing  reserved  words.    Remember:  before  you  try the
-program, you're going to have to edit every occurence of Block in
-the other loop constructs to include the new parameter.    Do  it
-just like I did for LOOP.
+I said ALMOST above. There is one slight problem: if you take a hard look
+at the  code generated for  **DO**, you'll see that  if you break  out of
+this loop,  the value  of the loop  counter is still  left on  the stack.
+We're going to have to fix that! A  shame ... that was one of our smaller
+routines, but it can't be helped.  Here's a version that doesn't have the
+problem:
 
-I  said ALMOST above.  There is one slight problem: if you take a
-hard  look  at  the code generated for DO, you'll see that if you
-break  out  of  this loop, the value of the loop counter is still
-left on the stack.  We're going to have to fix that!  A shame ...
-that was one  of  our  smaller  routines, but it can't be helped.
-Here's a version that doesn't have the problem:
-
-
-
-
+```
 {--------------------------------------------------------------}
 { Parse and Translate a DO Statement }
 
@@ -1967,36 +2011,33 @@ begin
    EmitLn('ADDQ #2,SP');
 end;
 {--------------------------------------------------------------}
+```
 
+The two extra  instructions, the `SUBQ` and `ADDQ`, take  care of leaving
+the stack in the right shape.
 
-The  two  extra  instructions,  the  SUBQ and ADDQ, take care  of
-leaving the stack in the right shape.
-                             
+## CONCLUSION
 
-CONCLUSION
+At this point we have created a number of control constructs ... a richer
+set,  really,  than that  provided  by  almost  any other  pro-  gramming
+language. And,  except for the  **FOR** loop, it  was pretty easy  to do.
+Even that one was tricky only because it's tricky in assembly language.
 
-At this point we have created a number of control  constructs ...
-a richer set, really, than that provided by almost any other pro-
-gramming language.  And,  except  for the FOR loop, it was pretty
-easy to do.  Even that one was tricky only because it's tricky in
-assembler language.
-
-I'll conclude this session here.  To wrap the thing up with a red
-ribbon, we really  should  have  a  go  at  having  real keywords
-instead of these mickey-mouse  single-character  things.   You've
-already seen that  the  extension to multi-character words is not
-difficult, but in this case it will make a big difference  in the
-appearance of our input code.  I'll save that little bit  for the
-next installment.  In that installment we'll also address Boolean
-expressions, so we can get rid of the dummy version  of Condition
-that we've used here.  See you then.
+I'll conclude this session here. To wrap  the thing up with a red ribbon,
+we  really should  have a  go at  having real  keywords instead  of these
+mickey-mouse  single-character  things.  You've  already  seen  that  the
+extension to multi-character words is not  difficult, but in this case it
+will make a big difference in the appearance of our input code. I'll save
+that little bit for the next  installment. In that installment we'll also
+address Boolean  expressions, so we can  get rid of the  dummy version of
+**Condition** that we've used here. See you then.
 
 For reference purposes, here is  the  completed  parser  for this
 session:
 
+### Pascal variant: completed parser program from this section
 
-
-
+```
 {--------------------------------------------------------------}
 program Branch;
 
@@ -2006,13 +2047,11 @@ program Branch;
 const TAB = ^I;
       CR  = ^M;
 
-
 {--------------------------------------------------------------}
 { Variable Declarations }
 
 var Look  : char;              { Lookahead Character }
     Lcount: integer;           { Label Counter }
-
 
 {--------------------------------------------------------------}
 { Read New Character From Input Stream }
@@ -2021,7 +2060,6 @@ procedure GetChar;
 begin
    Read(Look);
 end;
-
 
 {--------------------------------------------------------------}
 { Report an Error }
@@ -2032,7 +2070,6 @@ begin
    WriteLn(^G, 'Error: ', s, '.');
 end;
 
-
 {--------------------------------------------------------------}
 { Report Error and Halt }
 
@@ -2041,7 +2078,6 @@ begin
    Error(s);
    Halt;
 end;
-
 
 {--------------------------------------------------------------}
 { Report What Was Expected }
@@ -2060,7 +2096,6 @@ begin
    else Expected('''' + x + '''');
 end;
 
-
 {--------------------------------------------------------------}
 { Recognize an Alpha Character }
 
@@ -2069,7 +2104,6 @@ begin
    IsAlpha := UpCase(c) in ['A'..'Z'];
 end;
 
-
 {--------------------------------------------------------------}
 { Recognize a Decimal Digit }
 
@@ -2077,7 +2111,6 @@ function IsDigit(c: char): boolean;
 begin
    IsDigit := c in ['0'..'9'];
 end;
-                             
 
 {--------------------------------------------------------------}
 { Recognize an Addop }
@@ -2087,7 +2120,6 @@ begin
    IsAddop := c in ['+', '-'];
 end;
 
-
 {--------------------------------------------------------------}
 { Recognize White Space }
 
@@ -2095,7 +2127,6 @@ function IsWhite(c: char): boolean;
 begin
    IsWhite := c in [' ', TAB];
 end;
-
 
 {--------------------------------------------------------------}
 { Skip Over Leading White Space }
@@ -2105,7 +2136,6 @@ begin
    while IsWhite(Look) do
       GetChar;
 end;
-
 
 {--------------------------------------------------------------}
 { Get an Identifier }
@@ -2117,9 +2147,6 @@ begin
    GetChar;
 end;
 
-
-
-
 {--------------------------------------------------------------}
 { Get a Number }
 
@@ -2129,7 +2156,6 @@ begin
    GetNum := Look;
    GetChar;
 end;
-
 
 {--------------------------------------------------------------}
 { Generate a Unique Label }
@@ -2142,7 +2168,6 @@ begin
    Inc(LCount);
 end;
 
-
 {--------------------------------------------------------------}
 { Post a Label To Output }
 
@@ -2151,7 +2176,6 @@ begin
    WriteLn(L, ':');
 end;
 
-
 {--------------------------------------------------------------}
 { Output a String with Tab }
 
@@ -2159,7 +2183,6 @@ procedure Emit(s: string);
 begin
    Write(TAB, s);
 end;
-
 
 {--------------------------------------------------------------}
 
@@ -2171,7 +2194,6 @@ begin
    WriteLn;
 end;
 
-
 {--------------------------------------------------------------}
 { Parse and Translate a Boolean Condition }
 
@@ -2179,9 +2201,6 @@ procedure Condition;
 begin
    EmitLn('<condition>');
 end;
-
-                             
-
 
 {--------------------------------------------------------------}
 { Parse and Translate a Math Expression }
@@ -2191,12 +2210,10 @@ begin
    EmitLn('<expr>');
 end;
 
-
 {--------------------------------------------------------------}
 { Recognize and Translate an IF Construct }
 
 procedure Block(L: string); Forward;
-
 
 procedure DoIf(L: string);
 var L1, L2: string;
@@ -2218,7 +2235,6 @@ begin
    PostLabel(L2);
 end;
 
-
 {--------------------------------------------------------------}
 { Parse and Translate a WHILE Statement }
 
@@ -2236,7 +2252,6 @@ begin
    EmitLn('BRA ' + L1);
    PostLabel(L2);
 end;
-                             
 
 {--------------------------------------------------------------}
 { Parse and Translate a LOOP Statement }
@@ -2254,7 +2269,6 @@ begin
    PostLabel(L2);
 end;
 
-
 {--------------------------------------------------------------}
 { Parse and Translate a REPEAT Statement }
 
@@ -2271,7 +2285,6 @@ begin
    EmitLn('BEQ ' + L1);
    PostLabel(L2);
 end;
-
 
 {--------------------------------------------------------------}
 { Parse and Translate a FOR Statement }
@@ -2305,9 +2318,6 @@ begin
    EmitLn('ADDQ #2,SP');
 end;
 
-
-
-
 {--------------------------------------------------------------}
 { Parse and Translate a DO Statement }
 
@@ -2329,7 +2339,6 @@ begin
    EmitLn('ADDQ #2,SP');
 end;
 
-
 {--------------------------------------------------------------}
 { Recognize and Translate a BREAK }
 
@@ -2339,7 +2348,6 @@ begin
    EmitLn('BRA ' + L);
 end;
 
-
 {--------------------------------------------------------------}
 { Recognize and Translate an "Other" }
 
@@ -2347,7 +2355,6 @@ procedure Other;
 begin
    EmitLn(GetName);
 end;
-
 
 {--------------------------------------------------------------}
 { Recognize and Translate a Statement Block }
@@ -2368,11 +2375,7 @@ begin
    end;
 end;
 
-
-
-
 {--------------------------------------------------------------}
-
 { Parse and Translate a Program }
 
 procedure DoProgram;
@@ -2382,9 +2385,7 @@ begin
    EmitLn('END')
 end;
 
-
 {--------------------------------------------------------------}
-
 { Initialize }
 
 procedure Init;
@@ -2392,7 +2393,6 @@ begin
    LCount := 0;
    GetChar;
 end;
-
 
 {--------------------------------------------------------------}
 { Main Program }
@@ -2402,16 +2402,4 @@ begin
    DoProgram;
 end.
 {--------------------------------------------------------------}
-
-
-*****************************************************************
-*                                                               *
-*                        COPYRIGHT NOTICE                       *
-*                                                               *
-*   Copyright (C) 1988 Jack W. Crenshaw. All rights reserved.   *
-*                                                               *
-*****************************************************************
-
-
-
-
+```
