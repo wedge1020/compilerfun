@@ -14,6 +14,7 @@ BASH and C alongside the originally-provided Pascal code.
   * [INTRODUCTION](#INTRODUCTION)
   * [THE PLAN](#THE-PLAN)
   * [SOME GROUNDWORK](#SOME-GROUNDWORK)
+  * [PARSER NOTATION](#PARSER-NOTATION)
   * [THE IF STATEMENT](#THE-IF-STATEMENT)
   * [THE WHILE STATEMENT](#THE-WHILE-STATEMENT)
   * [THE LOOP STATEMENT](#THE-LOOP-STATEMENT)
@@ -517,7 +518,7 @@ Also, add the following extra initialization to **initialize()**:
 Due to  being able  to initialize  `labelcount` to  0 at  the top  of the
 script, this task is already done.
 
-## parser notation
+## PARSER NOTATION
 
 At this point  I'd also like to show  you a new kind of  notation. If you
 compare the  form of the **IF**  statement above with the  assembler code
