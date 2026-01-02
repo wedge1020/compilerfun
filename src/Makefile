@@ -64,6 +64,12 @@ ifneq ($(MAKECMDGOALS),debug)
 													   || (echo "\033[0;31mFAIL\033[0m" \
 													   && exit 1)
 	@printf "[\033[0;34m%s\033[0m]    %-28s -> %-28s ... "	  "$(CC)"        \
+															  "registeruse.c"   \
+															  "registeruse.o"
+	@$(CC) -c $(CFLAGS) registeruse.c 2>> $(CC).errors && echo "\033[0;32mOK\033[0m"  \
+													   || (echo "\033[0;31mFAIL\033[0m" \
+													   && exit 1)
+	@printf "[\033[0;34m%s\033[0m]    %-28s -> %-28s ... "	  "$(CC)"        \
 															  "symboltable.c"   \
 															  "symboltable.o"
 	@$(CC) -c $(CFLAGS) symboltable.c 2>> $(CC).errors && echo "\033[0;32mOK\033[0m"  \
@@ -79,6 +85,7 @@ ifneq ($(MAKECMDGOALS),debug)
 else
 	$(CC) -c $(CFLAGS) lex.yy.c                       || exit 1
 	$(CC) -c $(CFLAGS) parser.tab.c                   || exit 1
+	$(CC) -c $(CFLAGS) registeruse.c                  || exit 1
 	$(CC) -c $(CFLAGS) symboltable.c                  || exit 1
 	$(CC)    $(CFLAGS) *.o -o $(BIN)                  || exit 1
 endif

@@ -1,6 +1,11 @@
 #ifndef   _REGISTERUSE_H
 #define   _REGISTERUSE_H
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+
 #define  REG_ALLOCATED     0
 #define  REG_AVAILABLE     1
 #define  REG_UNAVAILABLE   2
@@ -25,7 +30,7 @@ typedef struct registerindex regidx;
 
 extern regidx *registers;
 void    initregs  (void);
-regidx *getreg    (void);
+regidx *getreg    (uint8_t);
 void    freereg   (regidx *);
 void    clearregs (void);
 

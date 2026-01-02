@@ -1,8 +1,10 @@
 %{
     #include <stdio.h>
     #include "symboltable.h"
+	#include "registeruse.h"
 
     symrec *symboltable;
+	regidx *registers;
 
     int  yylex   (void);
     int  yyerror (const char *);
