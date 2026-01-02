@@ -846,7 +846,7 @@ L2:  ...
 
 This leads us to the following syntax-directed translation:
 
-``
+```
     IF
     <condition>    { L1 = NewLabel;
                      L2 = NewLabel;
