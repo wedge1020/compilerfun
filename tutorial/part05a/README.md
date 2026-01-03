@@ -7,7 +7,7 @@ Copyright (C) 1988 Jack W. Crenshaw. All rights reserved.
 Updated and reformatted in github-style  markdown, adding in variants for
 BASH and C alongside the originally-provided Pascal code.
 
-# PART V, PREDENDUM A: REGISTER MANAGEMENT
+# PART V(A): REGISTER MANAGEMENT
 
 ## TABLE OF CONTENTS
 
@@ -17,6 +17,7 @@ BASH and C alongside the originally-provided Pascal code.
   * [OBTAIN FREE REGISTER](#OBTAIN-FREE-REGISTER)
   * [GET REGISTER FROM ID](#GET-REGISTER-FROM-ID)
   * [DEALLOCATE REGISTER](#DEALLOCATE-REGISTER)
+  * [CONCLUSION](#CONCLUSION)
 
 ## REGISTER MANAGEMENT
 
