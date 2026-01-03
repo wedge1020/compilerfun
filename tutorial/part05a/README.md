@@ -12,6 +12,11 @@ BASH and C alongside the originally-provided Pascal code.
 ## TABLE OF CONTENTS
 
   * [REGISTER MANAGEMENT](#REGISTER-MANAGEMENT)
+  * [GLOBAL REGTABLE ARRAY](#GLOBAL-REGTABLE-ARRAY)
+  * [INITIALIZE REGTABLE](#INITIALIZE-REGTABLE)
+  * [OBTAIN FREE REGISTER](#OBTAIN-FREE-REGISTER)
+  * [GET REGISTER FROM ID](#GET-REGISTER-FROM-ID)
+  * [DEALLOCATE REGISTER](#DEALLOCATE-REGISTER)
 
 ## REGISTER MANAGEMENT
 
@@ -27,6 +32,25 @@ Relying on the same  base register for storing all our  data seems like a
 recipe for  disaster, plus,  with multiple  registers available,  why not
 make  them all  available for  potential  use? That  is the  aim of  this
 section.
+
+## GLOBAL REGTABLE ARRAY
+
+To  implement  the  scheme,  a  `RegTable` array  will  be  created,  the
+approximate  size  being  the  number   of  available  registers  on  the
+architecture in question.
+
+On M68000, apparently that means D0-D7 (or 8 total registers).
+
+On Vircon32, that will be R0-R10 (11 total registers).
+
+While Vircon32 has 16 general purpose  registers, R11-R13 are used by the
+string operation instructions (should they be used), and R14-R15 are used
+by the stack.
+
+Additional  logic could  likely be  implemented to  check for  string and
+stack operations,  and otherwise make  some of these  registers available
+for allocation, but  for now the aim  is to keep things  simple and avoid
+those complications.
 
 ### Pascal variant: declare our global `RegTable` array
 
@@ -78,6 +102,8 @@ REGLIST="R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10"
 declare -A regtable
 echo -n                                            >  ${TMPFILE}.regtable
 ```
+
+## INITIALIZE REGTABLE
 
 We also need to initialize the array, so add this procedure:
 
@@ -135,6 +161,8 @@ function initregtable ()
 ```
 
 You must also insert a call to `InitRegTable`, in procedure `Init`.
+
+## OBTAIN FREE REGISTER
 
 Next, we  require a means  of querying the  `RegTable` array to  grab the
 next available register for use. Since  we initialized each element to 0,
@@ -221,6 +249,8 @@ function getregister()
 }
 ```
 
+## GET REGISTER FROM ID
+
 There is a small matter of convenience that needs to be addressed for the
 Pascal and C variants: `GetRegister`  returns the integer ID (offset from
 0) of the register being allocated.
@@ -236,7 +266,7 @@ that.
 { Obtain string of Register name from the numeric ID }
 
 function GetRegFromID(i: integer): string;
-var s: string;
+var s: string[3];
 begin
     if i >= 0 and i <= 7 then s := 'D' + i;
     else s := 'none';
@@ -273,6 +303,8 @@ uint8_t *getregfromid (uint8_t  regid)
     return (regname);
 }
 ```
+
+## DEALLOCATE REGISTER
 
 We also  need a way to  deallocate a register  once we are done  with it.
 Following some of the naming conventions in this tutorial we will do that
@@ -323,3 +355,12 @@ function putregister()
     echo "${regtable[*]}"                             >  ${TMPFILE}.regtable
 }
 ```
+
+## CONCLUSION
+
+With this scheme, we should now be  able to more flexibly utilize the set
+of CPU registers available to us on our particular platform.
+
+Through the  use of the `GetRegister`,  `GetRegFromID`, and `PutRegister`
+procedures,  we have  a simple  management  process in  place that,  like
+variables, should make our operations proceed more cleanly.
