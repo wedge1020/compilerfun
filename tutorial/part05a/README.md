@@ -143,18 +143,26 @@ that will correspond with register availability, whereas a non-zero value
 
 ### Pascal variant: implementing `GetRegister` function
 
-Get the next available register. If none are available, return a -1.
+Get the next available register. If none are available, return "none":
 
 ```
 {---------------------------------------------------------------}
-{ Obtain available Register from the Register Array }
+{ Obtain next available Register from the Register Array }
 
 function GetRegister: integer;
 var i: integer;
 begin
     for i := 0 to 7 do
-        if RegTable[i] = 0 then break;
+    begin
+        if RegTable[i] = 0 then
+        begin
+            RegTable[i] := 1;
+            break;
+        end;
+    end;
+
     if i = 8 then i := -1;
+    
     GetRegister := i;
 end;
 {---------------------------------------------------------------}
@@ -165,24 +173,28 @@ end;
 ```
 ////////////////////////////////////////////////////////////////////////////
 //
-// getregister(): obtain available register from the register array (if
-//                no register is available return a -1)
+// getregister(): obtain next  available register from the register array
+//                (if no register is available return -1)
 //
 uint8_t  getregister (void)
 {
     int32_t  index           = 0;
-    int32_t  result          = -1;
 
     for (index = 0; index < 11; index++)
     {
         if (regtable[index] == 0)
         {
-            result           = index;
+            regtable[index]  = 1;
             break;
         }
     }
 
-    return (result);
+    if (index               == 11)
+    {
+        index                = -1;
+    }
+
+    return (index);
 }
 ```
 
@@ -191,8 +203,8 @@ uint8_t  getregister (void)
 ```
 ##############################################################################
 ##
-## getregister(): obtain available register from the register array (if
-##                no register is available return the string "none")
+## getregister(): obtain next available register from the register array
+##                (if no register is available return the string "none")
 ##
 function getregister()
 {
@@ -209,11 +221,67 @@ function getregister()
 }
 ```
 
+There is a small matter of convenience that needs to be addressed for the
+Pascal and C variants: `GetRegister`  returns the integer ID (offset from
+0) of the register being allocated.
+
+To facilitate emission transactions, it  might be convenient to have that
+register  name in  string form.  These `GetRegFromID`  functions do  just
+that.
+
+### Pascal variant: implementing `GetRegFromID` function
+
+```
+{---------------------------------------------------------------}
+{ Obtain string of Register name from the numeric ID }
+
+function GetRegFromID(i: integer): string;
+var s: string;
+begin
+    if i >= 0 and i <= 7 then s := 'D' + i;
+    else s := 'none';
+    GetRegister := s;
+end;
+{---------------------------------------------------------------}
+```
+
+### C variant: implementing `getregfromid()` function
+
+```
+////////////////////////////////////////////////////////////////////////////
+//
+// getregfromid(): return string of register name from numeric ID
+//                 (on invalid register return NULL)
+//
+uint8_t *getregfromid (uint8_t  regid)
+{
+    uint8_t *regname  = NULL;
+
+    if ((regid       >= 0) &&
+        (regid       <= 15))
+    {
+        regname       = (uint8_t *) malloc (sizeof (uint8_t) * 4);
+        if (regname  == NULL)
+        {
+            fprintf (stderr, "[getregfromid] error allocating regname\n");
+            exit (3);
+        }
+
+        snprintf (regname, 4, "R%d", regid);
+    }
+
+    return (regname);
+}
+```
+
 We also  need a way to  deallocate a register  once we are done  with it.
 Following some of the naming conventions in this tutorial we will do that
 in a procedure  called `PutRegister`, which will take the  register as an
 argument (the index value) and reset  it to 0, indicating it is available
 for future use.
+
+The BASH variant is unique in that  its use of associative arrays lets us
+reference the register by name throughout register transactions.
 
 ### Pascal variant: implementing `PutRegister` procedure
 
