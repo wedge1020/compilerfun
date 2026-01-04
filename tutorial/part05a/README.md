@@ -17,7 +17,7 @@ BASH and C alongside the originally-provided Pascal code.
   * [OBTAIN FREE REGISTER](#OBTAIN-FREE-REGISTER)
   * [GET REGISTER FROM ID](#GET-REGISTER-FROM-ID)
   * [DEALLOCATE REGISTER](#DEALLOCATE-REGISTER)
-  * [CONCLUSION](#CONCLUSION)
+  * [REGISTER MANAGEMENT RECAP](#REGISTER-MANAGEMENT-RECAP)
 
 ## REGISTER MANAGEMENT
 
@@ -357,7 +357,7 @@ function putregister()
 }
 ```
 
-## CONCLUSION
+## REGISTER MANAGEMENT RECAP
 
 With this scheme, we should now be  able to more flexibly utilize the set
 of CPU registers available to us on our particular platform.
