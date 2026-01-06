@@ -13,6 +13,10 @@ BASH and C alongside the originally-provided Pascal code.
 
   * [INTRODUCTION](#INTRODUCTION)
   * [THE CRADLE](#THE-CRADLE)
+  * [PART 2: EXPRESSION PARSING](../part02/README.md)
+  * [PART 3: MORE EXPRESSIONS](../part03/README.md)
+  * [PART 4: INTERPRETERS](../part04/README.md)
+  * [PART 5: CONTROL CONSTRUCTS](../part05/README.md)
 
 ## INTRODUCTION
 
@@ -341,3 +345,5 @@ end.
 That's it for this introduction. Copy  the code above into TP and compile
 it. Make  sure that it compiles  and runs correctly. Then  proceed to the
 first lesson, which is on expression parsing.
+
+[PART 2: EXPRESSION PARSING](../part02/README.md)
