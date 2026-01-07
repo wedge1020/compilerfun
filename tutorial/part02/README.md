@@ -1,86 +1,65 @@
+# TUTORIAL: LET'S BUILD A COMPILER!
+
+Originally by: Jack W. Crenshaw, Ph.D. (July 24, 1988)
+
+Copyright (C) 1988 Jack W. Crenshaw. All rights reserved.
+
+Updated and reformatted in github-style  markdown, adding in variants for
+BASH and C alongside the originally-provided Pascal code.
+
+# PART I: EXPRESSION PARSING
+
+## TABLE OF CONTENTS
+
+  * [PART 1: INTRODUCTION](../part01/README.md)
+  * [PART 2: EXPRESSION PARSING](../part02/README.md)
+    * [GETTING STARTED](#GETTING-STARTED)
+    * [SINGLE DIGITS](#SINGLE-DIGITS)
+    * [BINARY EXPRESSIONS](#BINARY-EXPRESSIONS)
+    * [GENERAL EXPRESSIONS](#GENERAL-EXPRESSIONS)
+    * [USING THE STACK](#USING-THE-STACK)
+    * [MULTIPLICATION AND DIVISION](#MULTIPLICATION-AND-DIVISION)
+  * [PART 3: MORE EXPRESSIONS](../part03/README.md)
+  * [PART 4: INTERPRETERS](../part04/README.md)
+  * [PART 5: CONTROL CONSTRUCTS](../part05/README.md)
+
+## GETTING STARTED
+
+If you've read the introduction document to this series, you will already
+know what we're about. You will also have copied the cradle software into
+your Turbo Pascal system, and have compiled it. So you should be ready to
+go.
 
 
+The purpose of this article is for us to learn how to parse and translate
+mathematical expressions. What we would like to see as output is a series
+of assembler-language  statements that  perform the desired  actions. For
+purposes  of definition,  an  expression  is the  right-hand  side of  an
+equation, as in
 
+```
+    x = 2*y + 3/(4*z)
+```
 
+In the early  going, I'll be taking things in  _VERY_ small steps. That's
+so that  the beginners among you  won't get totally lost.  There are also
+some very good  lessons to be learned  early on, that will  serve us well
+later. For the more experienced readers:  bear with me. We'll get rolling
+soon enough.
 
+## SINGLE DIGITS
 
+In keeping with  the whole theme of this series  (KISS, remember?), let's
+start with the absolutely most simple case  we can think of. That, to me,
+is an expression consisting of a single digit.
 
+Before  starting to  code, make  sure  you have  a baseline  copy of  the
+"cradle"  that I  gave  last time.  We'll  be using  it  again for  other
+experiments. Then add this code:
 
+### Pascal variant: implementing `Expression` procedure
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                     LET'S BUILD A COMPILER!
-
-                                By
-
-                     Jack W. Crenshaw, Ph.D.
-
-                           24 July 1988
-
-
-                   Part II: EXPRESSION PARSING
-
-
-*****************************************************************
-*                                                               *
-*                        COPYRIGHT NOTICE                       *
-*                                                               *
-*   Copyright (C) 1988 Jack W. Crenshaw. All rights reserved.   *
-*                                                               *
-*****************************************************************
-
-
-GETTING STARTED
-
-If you've read the introduction document to this series, you will
-already know what  we're  about.    You will also have copied the
-cradle software  into your Turbo Pascal system, and have compiled
-it.  So you should be ready to go.
-
-
-The purpose of this article is for us to learn  how  to parse and
-translate mathematical expressions.  What we would like to see as
-output is a series of assembler-language statements  that perform
-the desired actions.    For purposes of definition, an expression
-is the right-hand side of an equation, as in
-
-               x = 2*y + 3/(4*z)
-
-In the early going, I'll be taking things in _VERY_  small steps.
-That's  so  that  the beginners among you won't get totally lost.
-There are also  some  very  good  lessons to be learned early on,
-that will serve us well later.  For the more experienced readers:
-bear with me.  We'll get rolling soon enough.
-
-SINGLE DIGITS
-
-In keeping with the whole theme of this series (KISS, remember?),
-let's start with the absolutely most simple case we can think of.
-That, to me, is an expression consisting of a single digit.
-
-Before starting to code, make sure you have a  baseline  copy  of
-the  "cradle" that I gave last time.  We'll be using it again for
-other experiments.  Then add this code:
-
-
+```
 {---------------------------------------------------------------}
 { Parse and Translate a Math Expression }
 
@@ -89,87 +68,84 @@ begin
    EmitLn('MOVE #' + GetNum + ',D0')
 end;
 {---------------------------------------------------------------}
+```
 
-
-And add the  line  "Expression;"  to  the main program so that it
-reads:
+And add the line "Expression;" to the main program so that it reads:
                               
+### Pascal variant: updating main program to call `Expression`
 
+```
 {---------------------------------------------------------------}
 begin
    Init;
    Expression;
 end.
 {---------------------------------------------------------------}
+```
 
-
-Now  run  the  program. Try any single-digit number as input. You
-should get a single line of assembler-language output.    Now try
-any  other character as input, and you'll  see  that  the  parser
-properly reports an error.
-
+Now run the program. Try any single-digit number as input. You should get
+a single line  of assembler-language output. Now try  any other character
+as input, and you'll see that the parser properly reports an error.
 
 CONGRATULATIONS! You have just written a working translator!
 
-OK, I grant you that it's pretty limited. But don't brush  it off
-too  lightly.  This little "compiler" does,  on  a  very  limited
-scale,  exactly  what  any larger compiler does:    it  correctly
-recognizes legal  statements in the input "language" that we have
-defined for it, and  it  produces  correct,  executable assembler
-code,  suitable  for  assembling  into  object  format.  Just  as
-importantly,  it correctly  recognizes  statements  that  are NOT
-legal, and gives a  meaningful  error message.  Who could ask for
-more?  As we expand our  parser,  we'd better make sure those two
-characteristics always hold true.
+OK, I  grant you  that it's pretty  limited. But don't  brush it  off too
+lightly. This  little "compiler" does,  on a very limited  scale, exactly
+what any larger  compiler does: it correctly  recognizes legal statements
+in the  input "language"  that we  have defined for  it, and  it produces
+correct, executable  assembler code, suitable for  assembling into object
+format. Just as importantly, it  correctly recognizes statements that are
+NOT legal, and gives a meaningful  error message. Who could ask for more?
+As we expand our parser, we'd  better make sure those two characteristics
+always hold true.
 
-There  are  some  other  features  of  this  tiny  program  worth
-mentioning.    First,  you  can  see that we don't separate  code
-generation from parsing ...  as  soon as the parser knows what we
-want  done, it generates the object code directly.    In  a  real
-compiler, of course, the reads in GetChar would be  from  a  disk
-file, and the writes to another  disk  file, but this way is much
-easier to deal with while we're experimenting.
+There  are some  other features  of this  tiny program  worth mentioning.
+First, you  can see that we  don't separate code generation  from parsing
+... as  soon as  the parser  knows what  we want  done, it  generates the
+object  code directly.  In  a  real compiler,  of  course,  the reads  in
+`GetChar` would be from a disk file, and the writes to another disk file,
+but this way is much easier to deal with while we're experimenting.
 
-Also note that an expression must leave a result somewhere.  I've
-chosen the  68000  register  DO.    I  could have made some other
-choices, but this one makes sense.
+Also note that  an expression must leave a result  somewhere. I've chosen
+the `68000` register `D0`. I could have made some other choices, but this
+one makes sense.
 
+## BINARY EXPRESSIONS
 
-BINARY EXPRESSIONS
+Now that we have that under our belt, let's branch out a bit. Admittedly,
+an "expression" consisting of only one character is not going to meet our
+needs for long, so let's see what we can do to extend it. Suppose we want
+to handle expressions of the form:
 
-Now that we have that under our belt,  let's  branch  out  a bit.
-Admittedly, an "expression" consisting of only  one  character is
-not going to meet our needs for long, so let's see what we can do
-to extend it. Suppose we want to handle expressions of the form:
-
-                         1+2
-     or                  4-3
-     or, in general, <term> +/- <term>
+```
+    1+2
+or  4-3
+or, in general, <term> +/- <term>
+```
 
 (That's a bit of Backus-Naur Form, or BNF.)
                               
-To do this we need a procedure that recognizes a term  and leaves
-its   result   somewhere,  and  another   that   recognizes   and
-distinguishes  between   a  '+'  and  a  '-'  and  generates  the
-appropriate code.  But if Expression is going to leave its result
-in DO, where should Term leave its result?    Answer:    the same
-place.  We're  going  to  have  to  save the first result of Term
-somewhere before we get the next one.
+To do  this we  need a procedure  that recognizes a  term and  leaves its
+result somewhere, and another that recognizes and distinguishes between a
+'**+**'  and  a  '**-**'  and  generates the  appropriate  code.  But  if
+Expression is  going to  leave its  result in  `D0`, where  should `Term`
+leave its result? Answer: the same place. We're going to have to save the
+first result of `Term` somewhere before we get the next one.
 
-OK, basically what we want to  do  is have procedure Term do what
-Expression was doing before.  So just RENAME procedure Expression
-as Term, and enter the following new version of Expression:
+OK, basically what we want to  do  is have procedure `Term` do what
+`Expression` was doing before.  So just RENAME procedure `Expression`
+as `Term`, and enter the following new version of `Expression`:
 
+### Pascal variant: implementing the new `Expression` procedure
 
-
-
+```
 {---------------------------------------------------------------}
 { Parse and Translate an Expression }
 
 procedure Expression;
 begin
    Term;
-   EmitLn('MOVE D0,D1');
+   EmitLn('MOVE D0, D1');
    case Look of
     '+': Add;
     '-': Subtract;
@@ -177,11 +153,13 @@ begin
    end;
 end;
 {--------------------------------------------------------------}
+```
 
+Next, just above `Expression` enter these two procedures:
 
-Next, just above Expression enter these two procedures:
+### Pascal variant: implementing `Add` procedure
 
-
+```
 {--------------------------------------------------------------}
 { Recognize and Translate an Add }
 
@@ -189,10 +167,13 @@ procedure Add;
 begin
    Match('+');
    Term;
-   EmitLn('ADD D1,D0');
+   EmitLn('ADD D1, D0');
 end;
+```
 
+### Pascal variant: implementing `Subtract` procedure
 
+```
 {-------------------------------------------------------------}
 { Recognize and Translate a Subtract }
 
@@ -200,61 +181,61 @@ procedure Subtract;
 begin
    Match('-');
    Term;
-   EmitLn('SUB D1,D0');
+   EmitLn('SUB D1, D0');
 end;
 {-------------------------------------------------------------}
-                              
+```
 
-When you're finished with that,  the order of the routines should
-be:
+When you're finished with that, the order of the routines should be:
 
- o Term (The OLD Expression)
- o Add
- o Subtract
- o Expression
+  * `Term` (The OLD `Expression`)
+  * `Add`
+  * `Subtract`
+  * `Expression`
 
-Now run the program.  Try any combination you can think of of two
-single digits,  separated  by  a  '+' or a '-'.  You should get a
-series of four assembler-language instructions out  of  each run.
-Now  try  some  expressions with deliberate errors in them.  Does
-the parser catch the errors?
+Now run the program.  Try any combination you can think  of of two single
+digits, separated by a  '**+**' or a '**-**'. You should  get a series of
+four  assembler-language  instructions out  of  each  run. Now  try  some
+expressions with  deliberate errors  in them. Does  the parser  catch the
+errors?
 
-Take  a  look  at the object  code  generated.    There  are  two
-observations we can make.  First, the code generated is  NOT what
-we would write ourselves.  The sequence
+Take a look  at the object code generated. There  are two observations we
+can make. First, the code generated is NOT what we would write ourselves.
+The sequence
 
-        MOVE #n,D0
-        MOVE D0,D1
+```
+    MOVE #n, D0
+    MOVE D0, D1
+```
 
-is inefficient.  If we were  writing  this code by hand, we would
+...  is inefficient.  If we  were  writing this  code by  hand, we  would
 probably just load the data directly to D1.
 
-There is a  message  here:  code  generated by our parser is less
-efficient  than the code we would write by hand.  Get used to it.
-That's going to be true throughout this series.  It's true of all
-compilers to some extent.  Computer scientists have devoted whole
-lifetimes to the issue of code optimization, and there are indeed
-things that can be done to improve the quality  of  code  output.
-Some compilers do quite well, but  there  is a heavy price to pay
-in complexity, and it's  a  losing  battle  anyway ... there will
-probably never come a time when  a  good  assembler-language pro-
-grammer can't out-program a compiler.    Before  this  session is
-over, I'll briefly mention some ways that we can do a  little op-
-timization,  just  to  show you that we can indeed improve things
-without too much trouble.  But remember, we're here to learn, not
-to see how tight we can make  the  object  code.    For  now, and
-really throughout  this  series  of  articles,  we'll  studiously
-ignore optimization and  concentrate  on  getting  out  code that
-works.
+There is a  message here: code generated by our  parser is less efficient
+than the code we would write by hand.  Get used to it. That's going to be
+true throughout this  series. It's true of all compilers  to some extent.
+Computer scientists  have devoted  whole lifetimes to  the issue  of code
+optimization, and there are indeed things that can be done to improve the
+quality of  code output.  Some compilers  do quite well,  but there  is a
+heavy price  to pay in  complexity, and it's  a losing battle  anyway ...
+there  will probably  never come  a time  when a  good assembler-language
+programmer can't  out-program a  compiler. Before  this session  is over,
+I'll briefly  mention some ways that  we can do a  little op- timization,
+just  to show  you that  we can  indeed improve  things without  too much
+trouble. But remember, we're  here to learn, not to see  how tight we can
+make  the object  code. For  now, and  really throughout  this series  of
+articles, we'll studiously ignore optimization and concentrate on getting
+out code that works.
 
-Speaking of which: ours DOESN'T!  The code is _WRONG_!  As things
-are working  now, the subtraction process subtracts D1 (which has
-the FIRST argument in it) from D0 (which has the second).  That's
-the wrong way, so we end up with the wrong  sign  for the result.
-So let's fix up procedure Subtract with a  sign-changer,  so that
-it reads
+Speaking  of which:  ours DOESN'T!  The code  is _WRONG_!  As things  are
+working now, the subtraction process  subtracts `D1` (which has the FIRST
+argument in it)  from `D0` (which has the second).  That's the wrong way,
+so  we end  up  with the  wrong  sign for  the result.  So  let's fix  up
+procedure `Subtract` with a sign-changer, so that it reads:
 
+### Pascal variant: updating `Subtract` for correctness
 
+```
 {-------------------------------------------------------------}
 { Recognize and Translate a Subtract }
 
@@ -262,47 +243,46 @@ procedure Subtract;
 begin
    Match('-');
    Term;
-   EmitLn('SUB D1,D0');
+   EmitLn('SUB D1, D0');
    EmitLn('NEG D0');
 end;
 {-------------------------------------------------------------}
+```
 
+Now  our  code  is  even  less  efficient, but  at  least  it  gives  the
+right  answer! Unfortunately,  the rules  that give  the meaning  of math
+expressions  require that  the  terms in  an expression  come  out in  an
+inconvenient order for us. Again, this is just one of those facts of life
+you learn to live  with. This one will come back to haunt  us when we get
+to division.
 
-Now  our  code  is even less efficient, but at least it gives the
-right answer!  Unfortunately, the  rules that give the meaning of
-math expressions require that the terms in an expression come out
-in an inconvenient  order  for  us.    Again, this is just one of
-those facts of life you learn to live with.   This  one will come
-back to haunt us when we get to division.
+OK,  at this  point  we have  a  parser  that can  recognize  the sum  or
+difference  of two  digits. Earlier,  we  could only  recognize a  single
+digit.  But real  expressions can  have either  form (or  an infinity  of
+others). For  kicks, go back  and run the  program with the  single input
+line '1'.
 
-OK,  at this point we have a parser that can recognize the sum or
-difference of two digits.    Earlier,  we  could only recognize a
-single digit.  But  real  expressions can have either form (or an
-infinity of others).  For kicks, go back and run the program with
-the single input line '1'.
+Didn't work,  did it?  And why  should it? We  just finished  telling our
+parser that the  only kinds of expressions that are  legal are those with
+two  terms. We  must  rewrite procedure  `Expression` to  be  a lot  more
+broadminded, and this is  where things start to take the  shape of a real
+parser.
 
-Didn't work, did it?   And  why  should  it?    We  just finished
-telling  our  parser  that the only kinds of expressions that are
-legal are those  with  two  terms.    We  must  rewrite procedure
-Expression to be a lot more broadminded, and this is where things
-start to take the shape of a real parser.
+## GENERAL EXPRESSIONS
 
+In  the REAL  world, an  expression  can consist  of one  or more  terms,
+separated by "addops" ('**+**' or '**-**'). In BNF, this is written:
 
+```
+    <expression> ::= <term> [<addop> <term>]*
+```
 
+We can accomodate this definition of an expression with the addition of a
+simple loop to procedure `Expression`:
 
-GENERAL EXPRESSIONS
+### Pascal variant: updating `Expression` to better handle addops
 
-In the  REAL  world,  an  expression  can  consist of one or more
-terms, separated  by  "addops"  ('+'  or  '-').   In BNF, this is
-written
-
-          <expression> ::= <term> [<addop> <term>]*
-
-
-We  can  accomodate  this definition of an  expression  with  the
-addition of a simple loop to procedure Expression:
-
-
+```
 {---------------------------------------------------------------}
 { Parse and Translate an Expression }
 
@@ -310,7 +290,7 @@ procedure Expression;
 begin
    Term;
    while Look in ['+', '-'] do begin
-      EmitLn('MOVE D0,D1');
+      EmitLn('MOVE D0, D1');
       case Look of
        '+': Add;
        '-': Subtract;
@@ -319,121 +299,138 @@ begin
    end;
 end;
 {--------------------------------------------------------------}
+```
 
+NOW we're  getting somewhere! This  version handles any number  of terms,
+and it only cost us two extra lines of code. As we go on, you'll discover
+that this is  characteristic of top-down parsers ... it  only takes a few
+lines of code to accomodate extensions to the language. That's what makes
+our  incremental  approach  possible.  Notice, too,  how  well  the  code
+of  procedure `Expression`  matches  the BNF  definition.  That, too,  is
+characteristic  of the  method. As  you get  proficient in  the approach,
+you'll find that you can turn BNF  into parser code just about as fast as
+you can type!
 
-NOW we're getting somewhere!   This version handles any number of
-terms, and it only cost us two extra lines of code.  As we go on,
-you'll discover that this is characteristic  of  top-down parsers
-... it only takes a few lines of code to accomodate extensions to
-the  language.    That's  what  makes  our  incremental  approach
-possible.  Notice, too, how well the code of procedure Expression
-matches the BNF definition.   That, too, is characteristic of the
-method.  As you get proficient in the approach, you'll  find that
-you can turn BNF into parser code just about as  fast  as you can
-type!
+OK, compile the new  version of our parser, and give it  a try. As usual,
+verify that the "compiler" can handle any legal expression, and will give
+a meaningful error  message for an illegal one. Neat,  eh? You might note
+that in our test  version, any error message comes out  sort of buried in
+whatever  code had  already  been generated.  But  remember, that's  just
+because we  are using  the CRT as  our "output file"  for this  series of
+experiments. In a production version,  the two outputs would be separated
+... one to the output file, and one to the screen.
 
-OK, compile the new version of our parser, and give it a try.  As
-usual,  verify  that  the  "compiler"   can   handle   any  legal
-expression,  and  will  give a meaningful error  message  for  an
-illegal one.  Neat, eh?  You might note that in our test version,
-any error message comes  out  sort of buried in whatever code had
-already been  generated. But remember, that's just because we are
-using  the  CRT  as  our  "output  file"  for   this   series  of
-experiments.  In a production version, the two  outputs  would be
-separated ... one to the output file, and one to the screen.
+## USING THE STACK
 
+At this point  I'm going to violate  my rule that we  don't introduce any
+complexity until  it's absolutely necessary,  long enough to point  out a
+problem with the  code we're generating. As things stand  now, the parser
+uses `D0` for  the "primary" register, and  `D1` as a place  to store the
+partial sum.  That works fine  for now, because as  long as we  deal with
+only the "addops"  '**+**' and '**-**', any  new term can be  added in as
+soon  as it  is found.  But  in general  that isn't  true. Consider,  for
+example, the expression:
 
-USING THE STACK
-
-At  this  point  I'm going to  violate  my  rule  that  we  don't
-introduce any complexity until  it's  absolutely  necessary, long
-enough to point out a problem with the code we're generating.  As
-things stand now, the parser  uses D0 for the "primary" register,
-and D1 as  a place to store the partial sum.  That works fine for
-now,  because  as  long as we deal with only the "addops" '+' and
-'-', any new term can be added in as soon as it is found.  But in
-general that isn't true.  Consider, for example, the expression
-
-               1+(2-(3+(4-5)))
+```
+    1+(2-(3+(4-5)))
+```
                               
-If we put the '1' in D1, where  do  we  put  the  '2'?    Since a
-general expression can have any degree of complexity, we're going
-to run out of registers fast!
+If we  put the  '1' in `D1`,  where do  we put the  '2'? Since  a general
+expression can have  any degree of complexity, we're going  to run out of
+registers fast!
 
-Fortunately,  there's  a  simple  solution.    Like  every modern
-microprocessor, the 68000 has a stack, which is the perfect place
-to save a variable number of items. So instead of moving the term
-in D0 to  D1, let's just push it onto the stack.  For the benefit
-of  those unfamiliar with 68000 assembler  language,  a  push  is
-written
+Fortunately, there's a simple solution. Like every modern microprocessor,
+the `68000` has a *stack*, which is  the perfect place to save a variable
+number of  items. So instead  of moving the term  in `D0` to  `D1`, let's
+just push  it onto the  stack. For the  benefit of those  unfamiliar with
+`68000` assembler language, a **push** is written:
 
-               -(SP)
+```
+    -(SP)
+```
 
-and a pop,     (SP)+ .
+and a **pop**:
 
+```
+    (SP)+
+```
 
-So let's change the EmitLn in Expression to read:
+So let's change the `EmitLn` in `Expression` to read:
 
-               EmitLn('MOVE D0,-(SP)');
+```
+    EmitLn('MOVE D0, -(SP)');
+```
 
-and the two lines in Add and Subtract to
+... and the two lines in `Add` and `Subtract` to:
 
-               EmitLn('ADD (SP)+,D0')
+```
+    EmitLn('ADD (SP)+, D0')
+```
 
-and            EmitLn('SUB (SP)+,D0'),
+... and ...
 
-respectively.  Now try the parser again and make sure  we haven't
-broken it.
+```
+    EmitLn('SUB (SP)+, D0'),
+```
 
-Once again, the generated code is less efficient than before, but
-it's a necessary step, as you'll see.
+respectively.  Now try the parser again and make sure  we haven't broken it.
 
+Once again, the generated code is  less efficient than before, but it's a
+necessary step, as you'll see.
 
-MULTIPLICATION AND DIVISION
+## MULTIPLICATION AND DIVISION
 
-Now let's get down to some REALLY serious business.  As  you  all
-know,  there  are  other  math   operators   than   "addops"  ...
-expressions can also have  multiply  and  divide operations.  You
-also  know  that  there  is  an implied operator  PRECEDENCE,  or
-hierarchy, associated with expressions, so that in  an expression
-like
+Now let's  get down  to some  REALLY serious business.  As you  all know,
+there are  other math  operators than "addops"  ... expressions  can also
+have  multiply and  divide operations.  You also  know that  there is  an
+implied operator *PRECEDENCE*, or hierarchy, associated with expressions,
+so that in an expression like:
 
-                    2 + 3 * 4,
+```
+    2 + 3 * 4,
+```
 
-we know that we're supposed to multiply FIRST, then  add.    (See
-why we needed the stack?)
+we know  that we're  supposed to  multiply FIRST, then  add. (See  why we
+needed the stack?)
 
-In the early days of compiler technology, people used some rather
-complex techniques to insure that the  operator  precedence rules
-were  obeyed.    It turns out,  though,  that  none  of  this  is
-necessary ... the rules can be accommodated quite  nicely  by our
-top-down  parsing technique.  Up till now,  the  only  form  that
-we've considered for a term is that of a  single  decimal  digit.
+In the early days of compiler technology, people used some rather complex
+techniques to insure  that the operator precedence rules  were obeyed. It
+turns out, though,  that none of this  is necessary ... the  rules can be
+accommodated quite nicely by our top-down parsing technique. Up till now,
+the  only form  that we've  considered for  a term  is that  of a  single
+decimal digit.
 
-More generally, we  can  define  a  term as a PRODUCT of FACTORS;
-i.e.,
+More generally,  we can define  a term  as a **PRODUCT**  of **FACTORS**;
+i.e.:
 
-          <term> ::= <factor>  [ <mulop> <factor ]*
+```
+    <term> ::= <factor>  [ <multop> <factor> ]*
+```
 
-What  is  a factor?  For now, it's what a term used to be  ...  a
-single digit.
+What is  a factor?  For now, it's  what a  term used to  be ...  a single
+digit.
 
-Notice the symmetry: a  term  has the same form as an expression.
-As a matter of fact, we can  add  to  our  parser  with  a little
-judicious  copying and renaming.  But  to  avoid  confusion,  the
-listing below is the complete set of parsing routines.  (Note the
-way we handle the reversal of operands in Divide.)
+Notice the  symmetry: a  term has the  same form as  an expression.  As a
+matter of fact, we can add to  our parser with a little judicious copying
+and renaming. But  to avoid confusion, the listing below  is the complete
+set of parsing routines. (Note the way we handle the reversal of operands
+in `Divide`.)
 
+### Pascal variant: implementing `Factor` procedure
 
+```
 {---------------------------------------------------------------}
 { Parse and Translate a Math Factor }
 
 procedure Factor;
 begin
-   EmitLn('MOVE #' + GetNum + ',D0')
+   EmitLn('MOVE #' + GetNum + ', D0')
 end;
+```
 
+### Pascal variant: implementing `Multiply` procedure
 
+```
 {--------------------------------------------------------------}
 { Recognize and Translate a Multiply }
 
@@ -441,10 +438,13 @@ procedure Multiply;
 begin
    Match('*');
    Factor;
-   EmitLn('MULS (SP)+,D0');
+   EmitLn('MULS (SP)+, D0');
 end;
+```
 
+### Pascal variant: implementing `Divide` procedure
 
+```
 {-------------------------------------------------------------}
 { Recognize and Translate a Divide }
 
@@ -452,11 +452,14 @@ procedure Divide;
 begin
    Match('/');
    Factor;
-   EmitLn('MOVE (SP)+,D1');
-   EmitLn('DIVS D1,D0');
+   EmitLn('MOVE (SP)+, D1');
+   EmitLn('DIVS D1, D0');
 end;
+```
 
+### Pascal variant: implementing `Term` procedure
 
+```
 {---------------------------------------------------------------}
 { Parse and Translate a Math Term }
 
@@ -464,18 +467,20 @@ procedure Term;
 begin
    Factor;
    while Look in ['*', '/'] do begin
-      EmitLn('MOVE D0,-(SP)');
+      EmitLn('MOVE D0, -(SP)');
       case Look of
        '*': Multiply;
        '/': Divide;
-      else Expected('Mulop');
+      else Expected('Multop');
       end;
    end;
 end;
+```
 
 
 
 
+```
 {--------------------------------------------------------------}
 { Recognize and Translate an Add }
 
@@ -483,10 +488,12 @@ procedure Add;
 begin
    Match('+');
    Term;
-   EmitLn('ADD (SP)+,D0');
+   EmitLn('ADD (SP)+, D0');
 end;
+```
 
 
+```
 {-------------------------------------------------------------}
 { Recognize and Translate a Subtract }
 
@@ -494,11 +501,12 @@ procedure Subtract;
 begin
    Match('-');
    Term;
-   EmitLn('SUB (SP)+,D0');
+   EmitLn('SUB (SP)+, D0');
    EmitLn('NEG D0');
 end;
+```
 
-
+```
 {---------------------------------------------------------------}
 { Parse and Translate an Expression }
 
@@ -506,7 +514,7 @@ procedure Expression;
 begin
    Term;
    while Look in ['+', '-'] do begin
-      EmitLn('MOVE D0,-(SP)');
+      EmitLn('MOVE D0, -(SP)');
       case Look of
        '+': Add;
        '-': Subtract;
@@ -515,12 +523,13 @@ begin
    end;
 end;
 {--------------------------------------------------------------}
+```
 
 
-Hot dog!  A NEARLY functional parser/translator, in only 55 lines
-of Pascal!  The output is starting to look really useful,  if you
-continue to overlook the inefficiency,  which  I  hope  you will.
-Remember, we're not trying to produce tight code here.
+Hot  dog! A  NEARLY functional  parser/translator,  in only  55 lines  of
+Pascal! The output is starting to  look really useful, if you continue to
+overlook the  inefficiency, which  I hope you  will. Remember,  we're not
+trying to produce tight code here.
 
 
 PARENTHESES
