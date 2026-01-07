@@ -223,12 +223,12 @@ quality of  code output.  Some compilers  do quite well,  but there  is a
 heavy price  to pay in  complexity, and it's  a losing battle  anyway ...
 there  will probably  never come  a time  when a  good assembler-language
 programmer can't  out-program a  compiler. Before  this session  is over,
-I'll briefly  mention some ways that  we can do a  little op- timization,
-just  to show  you that  we can  indeed improve  things without  too much
-trouble. But remember, we're  here to learn, not to see  how tight we can
-make  the object  code. For  now, and  really throughout  this series  of
-articles, we'll studiously ignore optimization and concentrate on getting
-out code that works.
+I'll briefly mention some ways that we can do a little optimization, just
+to show you  that we can indeed improve things  without too much trouble.
+But remember, we're here  to learn, not to see how tight  we can make the
+object  code. For  now, and  really throughout  this series  of articles,
+we'll studiously ignore optimization and  concentrate on getting out code
+that works.
 
 Speaking  of which:  ours DOESN'T!  The code  is _WRONG_!  As things  are
 working now, the subtraction process  subtracts `D1` (which has the FIRST
@@ -393,7 +393,7 @@ so that in an expression like:
     2 + 3 * 4,
 ```
 
-we know  that we're  supposed to  multiply FIRST, then  add. (See  why we
+... we know  that we're  supposed to  multiply FIRST, then  add. (See  why we
 needed the stack?)
 
 In the early days of compiler technology, people used some rather complex
