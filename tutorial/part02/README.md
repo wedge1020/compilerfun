@@ -19,6 +19,9 @@ BASH and C alongside the originally-provided Pascal code.
     * [GENERAL EXPRESSIONS](#GENERAL-EXPRESSIONS)
     * [USING THE STACK](#USING-THE-STACK)
     * [MULTIPLICATION AND DIVISION](#MULTIPLICATION-AND-DIVISION)
+    * [PARENTHESES](#PARENTHESES)
+    * [UNARY MINUS](#UNARY-MINUS)
+    * [A WORD ABOUT OPTIMIZATION](#A-WORD-ABOUT-OPTIMIZATION)
   * [PART 3: MORE EXPRESSIONS](../part03/README.md)
   * [PART 4: INTERPRETERS](../part04/README.md)
   * [PART 5: CONTROL CONSTRUCTS](../part05/README.md)
@@ -65,7 +68,7 @@ experiments. Then add this code:
 
 procedure Expression;
 begin
-   EmitLn('MOVE #' + GetNum + ',D0')
+    EmitLn('MOVE #' + GetNum + ',D0')
 end;
 {---------------------------------------------------------------}
 ```
@@ -77,8 +80,8 @@ And add the line "Expression;" to the main program so that it reads:
 ```
 {---------------------------------------------------------------}
 begin
-   Init;
-   Expression;
+    Init;
+    Expression;
 end.
 {---------------------------------------------------------------}
 ```
@@ -144,13 +147,13 @@ as `Term`, and enter the following new version of `Expression`:
 
 procedure Expression;
 begin
-   Term;
-   EmitLn('MOVE D0, D1');
-   case Look of
-    '+': Add;
-    '-': Subtract;
-   else Expected('Addop');
-   end;
+    Term;
+    EmitLn('MOVE D0, D1');
+    case Look of
+        '+': Add;
+        '-': Subtract;
+    else Expected('Addop');
+    end;
 end;
 {--------------------------------------------------------------}
 ```
@@ -165,9 +168,9 @@ Next, just above `Expression` enter these two procedures:
 
 procedure Add;
 begin
-   Match('+');
-   Term;
-   EmitLn('ADD D1, D0');
+    Match('+');
+    Term;
+    EmitLn('ADD D1, D0');
 end;
 ```
 
@@ -179,9 +182,9 @@ end;
 
 procedure Subtract;
 begin
-   Match('-');
-   Term;
-   EmitLn('SUB D1, D0');
+    Match('-');
+    Term;
+    EmitLn('SUB D1, D0');
 end;
 {-------------------------------------------------------------}
 ```
@@ -241,10 +244,10 @@ procedure `Subtract` with a sign-changer, so that it reads:
 
 procedure Subtract;
 begin
-   Match('-');
-   Term;
-   EmitLn('SUB D1, D0');
-   EmitLn('NEG D0');
+    Match('-');
+    Term;
+    EmitLn('SUB D1, D0');
+    EmitLn('NEG D0');
 end;
 {-------------------------------------------------------------}
 ```
@@ -288,15 +291,15 @@ simple loop to procedure `Expression`:
 
 procedure Expression;
 begin
-   Term;
-   while Look in ['+', '-'] do begin
-      EmitLn('MOVE D0, D1');
-      case Look of
-       '+': Add;
-       '-': Subtract;
-      else Expected('Addop');
-      end;
-   end;
+    Term;
+    while Look in ['+', '-'] do begin
+        EmitLn('MOVE D0, D1');
+        case Look of
+            '+': Add;
+            '-': Subtract;
+        else Expected('Addop');
+        end;
+    end;
 end;
 {--------------------------------------------------------------}
 ```
@@ -424,7 +427,7 @@ in `Divide`.)
 
 procedure Factor;
 begin
-   EmitLn('MOVE #' + GetNum + ', D0')
+    EmitLn('MOVE #' + GetNum + ', D0')
 end;
 ```
 
@@ -436,9 +439,9 @@ end;
 
 procedure Multiply;
 begin
-   Match('*');
-   Factor;
-   EmitLn('MULS (SP)+, D0');
+    Match('*');
+    Factor;
+    EmitLn('MULS (SP)+, D0');
 end;
 ```
 
@@ -450,10 +453,10 @@ end;
 
 procedure Divide;
 begin
-   Match('/');
-   Factor;
-   EmitLn('MOVE (SP)+, D1');
-   EmitLn('DIVS D1, D0');
+    Match('/');
+    Factor;
+    EmitLn('MOVE (SP)+, D1');
+    EmitLn('DIVS D1, D0');
 end;
 ```
 
@@ -465,46 +468,19 @@ end;
 
 procedure Term;
 begin
-   Factor;
-   while Look in ['*', '/'] do begin
-      EmitLn('MOVE D0, -(SP)');
-      case Look of
-       '*': Multiply;
-       '/': Divide;
-      else Expected('Multop');
-      end;
-   end;
+    Factor;
+    while Look in ['*', '/'] do begin
+        EmitLn('MOVE D0, -(SP)');
+        case Look of
+            '*': Multiply;
+            '/': Divide;
+        else Expected('Multop');
+        end;
+    end;
 end;
 ```
 
-
-
-
-```
-{--------------------------------------------------------------}
-{ Recognize and Translate an Add }
-
-procedure Add;
-begin
-   Match('+');
-   Term;
-   EmitLn('ADD (SP)+, D0');
-end;
-```
-
-
-```
-{-------------------------------------------------------------}
-{ Recognize and Translate a Subtract }
-
-procedure Subtract;
-begin
-   Match('-');
-   Term;
-   EmitLn('SUB (SP)+, D0');
-   EmitLn('NEG D0');
-end;
-```
+### Pascal variant: implementing new `Expression` procedure
 
 ```
 {---------------------------------------------------------------}
@@ -512,56 +488,61 @@ end;
 
 procedure Expression;
 begin
-   Term;
-   while Look in ['+', '-'] do begin
-      EmitLn('MOVE D0, -(SP)');
-      case Look of
-       '+': Add;
-       '-': Subtract;
-      else Expected('Addop');
-      end;
-   end;
+    Term;
+    while Look in ['+', '-'] do begin
+        EmitLn('MOVE D0, -(SP)');
+        case Look of
+            '+': Add;
+            '-': Subtract;
+        else Expected('Addop');
+        end;
+    end;
 end;
 {--------------------------------------------------------------}
 ```
-
 
 Hot  dog! A  NEARLY functional  parser/translator,  in only  55 lines  of
 Pascal! The output is starting to  look really useful, if you continue to
 overlook the  inefficiency, which  I hope you  will. Remember,  we're not
 trying to produce tight code here.
 
+## PARENTHESES
 
-PARENTHESES
+We can wrap up  this part of the parser with  the addition of parentheses
+with math expressions. As you know,  parentheses are a mechanism to force
+a desired operator precedence. So, for example, in the expression:
 
-We  can  wrap  up this part of the parser with  the  addition  of
-parentheses with  math expressions.  As you know, parentheses are
-a  mechanism to force a desired operator  precedence.    So,  for
-example, in the expression
+```
+    2*(3+4)
+```
 
-               2*(3+4) ,
+... the  parentheses force  the addition before  the multiply.  Much more
+importantly,  though,  parentheses  give  us  a  mechanism  for  defining
+expressions of any degree of complexity, as in:
 
-the parentheses force the addition  before  the  multiply.   Much
-more importantly, though, parentheses  give  us  a  mechanism for
-defining expressions of any degree of complexity, as in
+```
+    (1+2)/((3+4)+(5-6))
+```
 
-               (1+2)/((3+4)+(5-6))
+The key to  incorporating parentheses into our parser is  to realize that
+no matter how  complicated an expression enclosed by  parentheses may be,
+to the rest of  the world it looks like a simple factor.  That is, one of
+the forms for a factor is:
 
-The  key  to  incorporating  parentheses  into our parser  is  to
-realize that  no matter how complicated an expression enclosed by
-parentheses may be,  to  the  rest  of  the world it looks like a
-simple factor.  That is, one of the forms for a factor is:
+```
+    <factor> ::= (<expression>)
+```
 
-          <factor> ::= (<expression>)
+This is where the recursion comes  in. An expression can contain a factor
+which  contains another  expression  which contains  a  factor, etc.,  ad
+infinitum.
 
-This is where the recursion comes in. An expression can contain a
-factor which contains another expression which contains a factor,
-etc., ad infinitum.
+Complicated or not, we  can take care of this by adding  just a few lines
+of Pascal to procedure `Factor`:
+   
+### Pascal variant: updating `Factor` procedure to handle parentheses
 
-Complicated or not, we can take care of this by adding just a few
-lines of Pascal to procedure Factor:
-                             
-
+```
 {---------------------------------------------------------------}
 { Parse and Translate a Math Factor }
 
@@ -569,233 +550,212 @@ procedure Expression; Forward;
 
 procedure Factor;
 begin
-   if Look = '(' then begin
-      Match('(');
-      Expression;
-      Match(')');
-      end
-   else
-      EmitLn('MOVE #' + GetNum + ',D0');
+    if Look = '(' then begin
+        Match('(');
+        Expression;
+        Match(')');
+        end
+    else
+        EmitLn('MOVE #' + GetNum + ',D0');
 end;
 {--------------------------------------------------------------}
+```
 
+Note again how easily  we can extend the parser, and  how well the Pascal
+code matches the BNF syntax.
 
-Note again how easily we can extend the parser, and how  well the
-Pascal code matches the BNF syntax.
+As usual, compile the new version  and make sure that it correctly parses
+legal sentences, and flags illegal ones with an error message.
 
-As usual, compile the new version and make sure that it correctly
-parses  legal sentences, and flags illegal  ones  with  an  error
-message.
+## UNARY MINUS
 
+At  this  point,  we  have  a  parser that  can  handle  just  about  any
+expression, right? OK, try this input sentence:
 
-UNARY MINUS
+```
+    -1
+```
 
-At  this  point,  we have a parser that can handle just about any
-expression, right?  OK, try this input sentence:
+WHOOPS!  It  doesn't  work,   does  it?  Procedure  `Expression`  expects
+everything to  start with an integer,  so it coughs up  the leading minus
+sign. You'll find that +3 won't work either, nor will something like:
 
-                         -1
+```
+    -(3-2)
+```
 
-WOOPS!  It doesn't work, does it?   Procedure  Expression expects
-everything to start with an integer, so it coughs up  the leading
-minus  sign.  You'll find that +3 won't  work  either,  nor  will
-something like
+There are a couple of ways to  fix the problem. The easiest (although not
+necessarily the best) way is to  stick an imaginary leading zero in front
+of expressions of this type, so that  -3 becomes 0-3. We can easily patch
+this into our existing version of `Expression`:
 
-                    -(3-2) .
+### Pascal variant: updating `Expression` procedure to handle unary minus
 
-There  are  a  couple of ways to fix the problem.    The  easiest
-(although not necessarily the best)  way is to stick an imaginary
-leading zero in  front  of  expressions  of this type, so that -3
-becomes 0-3.  We can easily patch this into our  existing version
-of Expression:
-
-
-
+```
 {---------------------------------------------------------------}
 { Parse and Translate an Expression }
 
 procedure Expression;
 begin
-   if IsAddop(Look) then
-      EmitLn('CLR D0')
-   else
-      Term;
-   while IsAddop(Look) do begin
-      EmitLn('MOVE D0,-(SP)');
-      case Look of
-       '+': Add;
-       '-': Subtract;
-      else Expected('Addop');
-      end;
-   end;
+    if IsAddop(Look) then
+        EmitLn('CLR D0')
+    else
+        Term;
+    while IsAddop(Look) do begin
+        EmitLn('MOVE D0,-(SP)');
+        case Look of
+            '+': Add;
+            '-': Subtract;
+        else Expected('Addop');
+        end;
+    end;
 end;
 {--------------------------------------------------------------}
- 
+```
 
-I TOLD you that making changes  was  easy!   This time it cost us
-only  three  new lines of Pascal.   Note  the  new  reference  to
-function IsAddop.  Since the test for an addop appeared  twice, I
-chose  to  embed  it in the new function.  The  form  of  IsAddop
-should be apparent from that for IsAlpha.  Here it is:
+I TOLD you that making changes was  easy! This time it cost us only three
+new lines of Pascal. Note the  new reference to function `IsAddop`. Since
+the test  for an addop  appeared twice,  I chose to  embed it in  the new
+function.  The  form  of  `IsAddop`  should be  apparent  from  that  for
+`IsAlpha`. Here it is:
 
+### Pascal variant: implementing `IsAddop` function
 
+```
 {--------------------------------------------------------------}
 { Recognize an Addop }
 
 function IsAddop(c: char): boolean;
 begin
-   IsAddop := c in ['+', '-'];
+    IsAddop := c in ['+', '-'];
 end;
 {--------------------------------------------------------------}
+```
 
+OK, make  these changes  to the  program and  recompile. You  should also
+include `IsAddop` in  your baseline copy of the cradle.  We'll be needing
+it again  later. Now try the  input **-1** again. Wow!  The efficiency of
+the code is pretty  poor ... six lines of code just  for loading a simple
+constant ...  but at least  it's correct.  Remember, we're not  trying to
+replace Turbo Pascal here.
 
-OK, make these changes to the program and recompile.   You should
-also include IsAddop in your baseline copy of the cradle.   We'll
-be needing  it  again  later.   Now try the input -1 again.  Wow!
-The efficiency of the code is  pretty  poor ... six lines of code
-just for loading a simple constant ... but at least it's correct.
-Remember, we're not trying to replace Turbo Pascal here.
-
-At this point we're just about finished with the structure of our
-expression parser.   This version of the program should correctly
-parse and compile just about any expression you care to  throw at
-it.    It's still limited in that  we  can  only  handle  factors
-involving single decimal digits.    But I hope that by now you're
-starting  to  get  the  message  that we can  accomodate  further
-extensions  with  just  some  minor  changes to the parser.   You
-probably won't be  surprised  to  hear  that a variable or even a
+At  this point  we're  just  about finished  with  the  structure of  our
+expression parser. This version of the program should correctly parse and
+compile just  about any expression  you care to  throw at it.  It's still
+limited  in that  we can  only  handle factors  involving single  decimal
+digits. But I hope that by now you're starting to get the message that we
+can accomodate  further extensions  with just some  minor changes  to the
+parser. You probably won't be surprised to hear that a variable or even a
 function call is just another kind of a factor.
                              
-In  the next session, I'll show you just how easy it is to extend
-our parser to take care of  these  things too, and I'll also show
-you just  how easily we can accomodate multicharacter numbers and
-variable names.  So you see,  we're  not  far at all from a truly
-useful parser.
+In the  next session, I'll  show you  just how easy  it is to  extend our
+parser to take care of these things  too, and I'll also show you just how
+easily we  can accomodate multicharacter  numbers and variable  names. So
+you see, we're not far at all from a truly useful parser.
 
+## A WORD ABOUT OPTIMIZATION
 
-
-
-A WORD ABOUT OPTIMIZATION
-
-Earlier in this session, I promised to give you some hints  as to
-how we can improve the quality of the generated code.  As I said,
-the  production of tight code is not the  main  purpose  of  this
-series of articles.  But you need to at least know that we aren't
-just  wasting our time here ... that we  can  indeed  modify  the
-parser further to  make  it produce better code, without throwing
-away everything we've done to date.  As usual, it turns  out that
-SOME optimization is not that difficult to do ... it simply takes
-some extra code in the parser.
+Earlier in this session,  I promised to give you some hints  as to how we
+can improve the quality of the  generated code. As I said, the production
+of tight code is not the main purpose of this series of articles. But you
+need to at least know that we  aren't just wasting our time here ... that
+we can indeed  modify the parser further to make  it produce better code,
+without throwing away  everything we've done to date. As  usual, it turns
+out that  SOME optimization  is not  that difficult to  do ...  it simply
+takes some extra code in the parser.
 
 There are two basic approaches we can take:
 
-  o Try to fix up the code after it's generated
+  * Try to fix up the code after it's generated:
 
-    This is  the concept of "peephole" optimization.  The general
-    idea it that we  know  what  combinations of instructions the
-    compiler  is  going  to generate, and we also know which ones
-    are pretty bad (such as the code for -1, above).    So all we
-    do  is  to   scan   the  produced  code,  looking  for  those
-    combinations, and replacing  them  by better ones.  It's sort
-    of   a   macro   expansion,   in   reverse,   and   a  fairly
-    straightforward  exercise  in   pattern-matching.   The  only
-    complication,  really, is that there may be  a  LOT  of  such
-    combinations to look for.  It's called  peephole optimization
-    simply because it only looks at a small group of instructions
-    at a time.  Peephole  optimization can have a dramatic effect
-    on  the  quality  of the code,  with  little  change  to  the
-    structure of the compiler  itself.   There is a price to pay,
-    though,  in  both  the  speed,   size, and complexity of  the
-    compiler.  Looking for all those combinations calls for a lot
-    of IF tests, each one of which is a source of error.  And, of
-    course, it takes time.
+    This is the  concept of "peephole" optimization. The  general idea it
+    that we know what combinations  of instructions the compiler is going
+    to generate, and we also know which  ones are pretty bad (such as the
+    code  for  -1,  above).  So  all  we  do  is  to  scan  the  produced
+    code, looking  for those combinations,  and replacing them  by better
+    ones.  It's sort  of  a macro  expansion, in  reverse,  and a  fairly
+    straightforward exercise in  pattern-matching. The only complication,
+    really, is that there may be a  LOT of such combinations to look for.
+    It's called peephole  optimization simply because it only  looks at a
+    small group of instructions at a time. Peephole optimization can have
+    a dramatic effect  on the quality of the code,  with little change to
+    the  structure of  the  compiler itself.  There is  a  price to  pay,
+    though,  in both  the speed,  size, and  complexity of  the compiler.
+    Looking for  all those combinations  calls for  a lot of  `IF` tests,
+    each one  of which  is a source  of error. And,  of course,  it takes
+    time.
 
-     In  the  classical  implementation  of a peephole optimizer,
-    it's done as a second pass to the compiler.  The  output code
-    is  written  to  disk,  and  then  the  optimizer  reads  and
-    processes the disk file again.  As a matter of fact,  you can
-    see that the optimizer could  even be a separate PROGRAM from
-    the compiler proper.  Since the optimizer only  looks  at the
-    code through a  small  "window"  of  instructions  (hence the
-    name), a better implementation would be to simply buffer up a
-    few lines of output, and scan the buffer after each EmitLn.
+    In the classical implementation of a peephole optimizer, it's done as
+    a second  pass to the compiler.  The output code is  written to disk,
+    and then the optimizer reads and  processes the disk file again. As a
+    matter  of fact,  you can  see  that the  optimizer could  even be  a
+    separate PROGRAM from  the compiler proper. Since  the optimizer only
+    looks at the code through a small "window" of instructions (hence the
+    name), a  better implementation would  be to  simply buffer up  a few
+    lines of output, and scan the buffer after each EmitLn.
 
-  o Try to generate better code in the first place
+  * Try to generate better code in the first place:
                              
-    This approach calls for us to look for  special  cases BEFORE
-    we Emit them.  As a trivial example,  we  should  be  able to
-    identify a constant zero,  and  Emit a CLR instead of a load,
-    or even do nothing at all, as in an add of zero, for example.
-    Closer to home, if we had chosen to recognize the unary minus
-    in Factor  instead of in Expression, we could treat constants
-    like -1 as ordinary constants,  rather  then  generating them
-    from  positive  ones.   None of these things are difficult to
-    deal with ... they only add extra tests in the code, which is
-    why  I  haven't  included them in our program.  The way I see
-    it, once we get to the point that we have a working compiler,
-    generating useful code  that  executes, we can always go back
-    and tweak the thing to tighten up the code produced.   That's
-    why there are Release 2.0's in the world.
+    This approach calls  for us to look for special  cases BEFORE we Emit
+    them. As a trivial example, we  should be able to identify a constant
+    zero, and Emit a CLR instead of a load, or even do nothing at all, as
+    in an add of  zero, for example. Closer to home, if  we had chosen to
+    recognize  the unary  minus in  Factor instead  of in  Expression, we
+    could  treat constants  like -1  as ordinary  constants, rather  then
+    generating  them  from  positive  ones.  None  of  these  things  are
+    difficult to  deal with ...  they only add  extra tests in  the code,
+    which is why  I haven't included them  in our program. The  way I see
+    it,  once we  get  to the  point  that we  have  a working  compiler,
+    generating useful code that executes, we can always go back and tweak
+    the  thing to  tighten up  the code  produced. That's  why there  are
+    Release 2.0's in the world.
 
-There IS one more type  of  optimization  worth  mentioning, that
-seems to promise pretty tight code without too much hassle.  It's
-my "invention" in the  sense  that I haven't seen it suggested in
-print anywhere, though I have  no  illusions  that  it's original
-with me.
+There IS  one more type of  optimization worth mentioning, that  seems to
+promise pretty tight code without too much hassle. It's my "invention" in
+the sense  that I haven't seen  it suggested in print  anywhere, though I
+have no illusions that it's original with me.
 
-This  is to avoid such a heavy use of the stack, by making better
-use of the CPU registers.  Remember back when we were  doing only
-addition  and  subtraction,  that we used registers  D0  and  D1,
-rather than the stack?  It worked, because with  only  those  two
-operations, the "stack" never needs more than two entries.
+This is to avoid  such a heavy use of the stack, by  making better use of
+the CPU  registers. Remember back  when we  were doing only  addition and
+subtraction, that we used registers `D0` and `D1`, rather than the stack?
+It  worked, because  with only  those two  operations, the  "stack" never
+needs more than two entries.
 
-Well,  the 68000 has eight data registers.  Why not use them as a
-privately managed stack?  The key is to recognize  that,  at  any
-point in its processing,  the  parser KNOWS how many items are on
-the  stack, so it can indeed manage it properly.  We can define a
-private "stack pointer" that keeps  track  of  which  stack level
-we're at, and addresses the  corresponding  register.   Procedure
-Factor,  for  example,  would  not  cause data to be loaded  into
-register  D0,  but   into  whatever  the  current  "top-of-stack"
-register happened to be.
+Well,  the `68000`  has  eight data  registers.  Why not  use  them as  a
+privately managed  stack? The key is  to recognize that, at  any point in
+its processing, the parser  KNOWS how many items are on  the stack, so it
+can  indeed  manage it  properly.  We  can  define a  *private*  "**stack
+pointer**" that keeps track of which  stack level we're at, and addresses
+the  corresponding register.  Procedure  Factor, for  example, would  not
+cause data to be loaded into register `D0`, but into whatever the current
+"top-of-stack" register happened to be.
 
-What we're doing in effect is to replace the CPU's RAM stack with
-a  locally  managed  stack  made  up  of  registers.    For  most
-expressions, the stack level  will  never  exceed eight, so we'll
-get pretty good code out.  Of course, we also  have  to deal with
-those  odd cases where the stack level  DOES  exceed  eight,  but
-that's no problem  either.    We  simply let the stack spill over
-into the CPU  stack.    For  levels  beyond eight, the code is no
-worse  than  what  we're generating now, and for levels less than
-eight, it's considerably better.
+What we're  doing in  effect is  to replace  the CPU's  RAM stack  with a
+locally managed  stack made  up of registers.  For most  expressions, the
+stack level will  never exceed eight, so we'll get  pretty good code out.
+Of course,  we also  have to deal  with those odd  cases where  the stack
+level DOES exceed eight, but that's  no problem either. We simply let the
+stack spill over into the CPU stack. For levels beyond eight, the code is
+no worse than what we're generating  now, and for levels less than eight,
+it's considerably better.
 
-For the record, I  have  implemented  this  concept, just to make
-sure  it  works  before  I  mentioned  it to you.  It does.    In
-practice, it turns out that you can't really use all eight levels
-... you need at least one register free to  reverse  the  operand
-order for division  (sure  wish  the  68000 had an XTHL, like the
-8080!).  For expressions  that  include  function calls, we would
-also need a register reserved for them. Still, there  is  a  nice
-improvement in code size for most expressions.
+For the  record, I have  implemented this concept,  just to make  sure it
+works before I  mentioned it to you.  It does. In practice,  it turns out
+that you  can't really  use all eight  levels ... you  need at  least one
+register free  to reverse the operand  order for division (sure  wish the
+`68000` had  an `XTHL`, like  the `8080`!). For expressions  that include
+function calls, we  would also need a register reserved  for them. Still,
+there is a nice improvement in code size for most expressions.
 
-So, you see, getting  better  code  isn't  that difficult, but it
-does add complexity to the our translator ...  complexity  we can
-do without at this point.  For that reason,  I  STRONGLY  suggest
-that we continue to ignore efficiency issues for the rest of this
-series,  secure  in  the knowledge that we can indeed improve the
-code quality without throwing away what we've done.
+So, you  see, getting better code  isn't that difficult, but  it does add
+complexity to the our translator ... complexity we can do without at this
+point. For  that reason, I  STRONGLY suggest  that we continue  to ignore
+efficiency issues  for the rest of  this series, secure in  the knowledge
+that we  can indeed improve the  code quality without throwing  away what
+we've done.
 
-Next lesson, I'll show you how to deal with variables factors and
-function calls.  I'll also show you just how easy it is to handle
+Next  lesson, I'll  show you  how to  deal with  variables, factors,  and
+function  calls.  I'll also  show  you  just how  easy  it  is to  handle
 multicharacter tokens and embedded white space.
 
-*****************************************************************
-*                                                               *
-*                        COPYRIGHT NOTICE                       *
-*                                                               *
-*   Copyright (C) 1988 Jack W. Crenshaw. All rights reserved.   *
-*                                                               *
-*****************************************************************
- 
-
-
-
+[PART 3: MORE EXPRESSIONS](../part03/README.md)
