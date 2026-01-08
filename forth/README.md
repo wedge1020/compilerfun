@@ -24,6 +24,8 @@ To build:
   * [DIRECT THREADED CODE](#DIRECT-THREADED-CODE)
   * [INDIRECT THREADED CODE](#INDIRECT-THREADED-CODE)
   * [THE INTERPRETER AND RETURN STACK](#THE-INTERPRETER-AND-RETURN-STACK)
+  * [STARTING UP](#STARTING-UP)
+  * [BUILT-IN WORDS](#BUILT-IN-WORDS)
 
 ## INTRODUCTION
 
@@ -572,35 +574,43 @@ My list of four things are:
 
 ## THE INTERPRETER AND RETURN STACK
 
-	Going at these in no particular order, let's talk about issues (3) and (2), the interpreter
-	and the return stack.
+Going at  these in no particular  order, let's talk about  issues of what
+goes in the codeword for words  written in `FORTH`, and how functions are
+called: the interpreter and the return stack.
 
-	Words which are defined in FORTH need a codeword which points to a little bit of code to
-	give them a "helping hand" in life.  They don't need much, but they do need what is known
-	as an "interpreter", although it doesn't really "interpret" in the same way that, say,
-	Java bytecode used to be interpreted (ie. slowly).  This interpreter just sets up a few
-	machine registers so that the word can then execute at full speed using the indirect
-	threaded model above.
+Words which  are defined  in `FORTH`  need a codeword  which points  to a
+little bit of code to give them a "helping hand" in life. They don't need
+much, but  they do need  what is known  as an "interpreter",  although it
+doesn't really  "interpret" in  the same way  that, say,  `Java` bytecode
+used to be interpreted (ie. slowly).  This interpreter just sets up a few
+machine registers so  that the word can then execute  at full speed using
+the indirect threaded model above.
 
-	One of the things that needs to happen when QUADRUPLE calls DOUBLE is that we save the old
-	%esi ("instruction pointer") and create a new one pointing to the first word in DOUBLE.
-	Because we will need to restore the old %esi at the end of DOUBLE (this is, after all, like
-	a function call), we will need a stack to store these "return addresses" (old values of %esi).
+One of the things that needs to happen when `QUADRUPLE` calls `DOUBLE` is
+that we  save the old **%esi**  (our "instruction pointer") and  create a
+new one pointing to  the first word in `DOUBLE`. Because  we will need to
+restore the old **%esi** at the end of `DOUBLE` (this is, after all, like
+a  *function  call*),  we  will  need a  stack  to  store  these  "return
+addresses" (old values of **%esi**).
 
-	As you will have seen in the background documentation, FORTH has two stacks, an ordinary
-	stack for parameters, and a return stack which is a bit more mysterious.  But our return
-	stack is just the stack I talked about in the previous paragraph, used to save %esi when
-	calling from a FORTH word into another FORTH word.
+As you  will have seen in  the background documentation, `FORTH`  has two
+stacks, an ordinary  stack for parameters, and a return  stack which is a
+bit more  mysterious. But  our return  stack is just  the stack  I talked
+about in  the previous paragraph, used  to save %esi when  calling from a
+`FORTH` word into another `FORTH` word.
 
-	In this FORTH, we are using the normal stack pointer (%esp) for the parameter stack.
-	We will use the i386's "other" stack pointer (%ebp, usually called the "frame pointer")
-	for our return stack.
+In this `FORTH`,  we are using the normal *stack  pointer* (**%esp**) for
+the  parameter  stack. We  will  use  the  i386's "other"  stack  pointer
+(**%ebp**, usually called the "*frame pointer*") for our return stack.
 
-	I've got two macros which just wrap up the details of using %ebp for the return stack.
-	You use them as for example "PUSHRSP %eax" (push %eax on the return stack) or "POPRSP %ebx"
-	(pop top of return stack into %ebx).
-*/
+I've got two macros which just wrap  up the details of using **%ebp** for
+the return stack.  You use them as for example  "**PUSHRSP %eax**" (`push %eax`
+on  the return  stack) or  "**POPRSP %ebx**"  (pop top  of return  stack into
+**%ebx**).
 
+### x86 assembly macros for `PUSHRSP` and `POPRSP`
+
+```
 /* Macros to deal with the return stack. */
 	.macro PUSHRSP reg
 	lea -4(%ebp),%ebp	// push reg on to return stack
@@ -611,21 +621,25 @@ My list of four things are:
 	mov (%ebp),\reg		// pop top of return stack to reg
 	lea 4(%ebp),%ebp
 	.endm
+```
 
-/*
-	And with that we can now talk about the interpreter.
+And with that we can now talk about the interpreter.
 
-	In FORTH the interpreter function is often called DOCOL (I think it means "DO COLON" because
-	all FORTH definitions start with a colon, as in : DOUBLE DUP + ;
+In `FORTH` the  interpreter function is often called `DOCOL`  (I think it
+means "DO COLON"  because all `FORTH` definitions start with  a colon, as
+in: `: DOUBLE DUP + ;`
 
-	The "interpreter" (it's not really "interpreting") just needs to push the old %esi on the
-	stack and set %esi to the first word in the definition.  Remember that we jumped to the
-	function using JMP *(%eax)?  Well a consequence of that is that conveniently %eax contains
-	the address of this codeword, so just by adding 4 to it we get the address of the first
-	data word.  Finally after setting up %esi, it just does NEXT which causes that first word
-	to run.
-*/
+The "interpreter" (it's not really "interpreting") just needs to push the
+old **%esi**  on the  stack and  set **%esi**  to the  first word  in the
+definition. Remember that we jumped  to the function using `JMP *(%eax)`?
+Well a  consequence of  that is that  conveniently **%eax**  contains the
+address of this codeword, so just by  adding `4` to it we get the address
+of the first  data word. Finally after setting up  **%esi**, it just does
+`NEXT` which causes that first word to run.
 
+### x86 assembly routine for `DOCOL`
+
+```
 /* DOCOL - the interpreter! */
 	.text
 	.align 4
@@ -634,11 +648,12 @@ DOCOL:
 	addl $4,%eax		// %eax points to codeword, so make
 	movl %eax,%esi		// %esi point to first data word
 	NEXT
+```
 
-/*
-	Just to make this absolutely clear, let's see how DOCOL works when jumping from QUADRUPLE
-	into DOUBLE:
+Just  to make  this  absolutely clear,  let's see  how  `DOCOL` works  when
+jumping from `QUADRUPLE` into `DOUBLE`:
 
+```
 		QUADRUPLE:
 		+------------------+
 		| codeword         |
@@ -649,11 +664,14 @@ DOCOL:
 		+------------------+	   	   | addr of DUP      |
 		| addr of EXIT	   |		   +------------------+
 		+------------------+               | etc.             |
+```
 
-	First, the call to DOUBLE calls DOCOL (the codeword of DOUBLE).  DOCOL does this:  It
-	pushes the old %esi on the return stack.  %eax points to the codeword of DOUBLE, so we
-	just add 4 on to it to get our new %esi:
+First, the  call to  `DOUBLE` calls `DOCOL`  (the codeword  of `DOUBLE`).
+`DOCOL`  does this:  It  pushes the  old **%esi**  on  the return  stack.
+**%eax** points to the codeword of `DOUBLE`,  so we just add `4` on to it
+to get our new **%esi**:
 
+```
 		QUADRUPLE:
 		+------------------+
 		| codeword         |
@@ -664,33 +682,39 @@ stack points ->	| addr of DOUBLE   |	   + 4 =   +------------------+
 		+------------------+	   %esi -> | addr of DUP      |
 		| addr of EXIT	   |		   +------------------+
 		+------------------+               | etc.             |
+```
 
-	Then we do NEXT, and because of the magic of threaded code that increments %esi again
-	and calls DUP.
+Then  we do  `NEXT`,  and because  of  the magic  of  threaded code  that
+increments **%esi** again and calls `DUP`.
 
-	Well, it seems to work.
+Well, it seems to work.
 
-	One minor point here.  Because DOCOL is the first bit of assembly actually to be defined
-	in this file (the others were just macros), and because I usually compile this code with the
-	text segment starting at address 0, DOCOL has address 0.  So if you are disassembling the
-	code and see a word with a codeword of 0, you will immediately know that the word is
-	written in FORTH (it's not an assembler primitive) and so uses DOCOL as the interpreter.
+One  minor point  here:  Because `DOCOL`  is the  first  bit of  assembly
+actually to  be defined in this  file (the others were  just macros), and
+because I  usually compile this  code with  the text segment  starting at
+address `0`,  `DOCOL` has address  `0`. So  if you are  disassembling the
+code and  see a word  with a codeword of  `0`, you will  immediately know
+that the word is written in `FORTH` (it's not an assembler primitive) and
+so uses `DOCOL` as the interpreter.
 
-	STARTING UP ----------------------------------------------------------------------
+### STARTING UP
 
-	Now let's get down to nuts and bolts.  When we start the program we need to set up
-	a few things like the return stack.  But as soon as we can, we want to jump into FORTH
-	code (albeit much of the "early" FORTH code will still need to be written as
-	assembly language primitives).
+Now let's get down  to nuts and bolts. When we start  the program we need
+to set up a  few things like the return stack. But as  soon as we can, we
+want to jump  into `FORTH` code (albeit much of  the "early" `FORTH` code
+will still need to be written as assembly language primitives).
 
-	This is what the set up code does.  Does a tiny bit of house-keeping, sets up the
-	separate return stack (NB: Linux gives us the ordinary parameter stack already), then
-	immediately jumps to a FORTH word called QUIT.  Despite its name, QUIT doesn't quit
-	anything.  It resets some internal state and starts reading and interpreting commands.
-	(The reason it is called QUIT is because you can call QUIT from your own FORTH code
-	to "quit" your program and go back to interpreting).
-*/
+This is what the set up code does. Does a tiny bit of house-keeping, sets
+up the separate  return stack (NB: Linux gives us  the ordinary parameter
+stack already), then  immediately jumps to a `FORTH`  word called `QUIT`.
+Despite its name,  `QUIT` doesn't quit anything. It  resets some internal
+state and  starts reading  and interpreting commands.  (The reason  it is
+called `QUIT` is  because you can call `QUIT` from  your own `FORTH` code
+to "quit" your program and go back to interpreting).
 
+### x86 assembly to for `_start`
+
+```
 /* Assembler entry point. */
 	.text
 	.globl _start
@@ -706,13 +730,15 @@ _start:
 	.section .rodata
 cold_start:			// High-level code without a codeword.
 	.int QUIT
+```
 
-/*
-	BUILT-IN WORDS ----------------------------------------------------------------------
+## BUILT-IN WORDS
 
-	Remember our dictionary entries (headers)?  Let's bring those together with the codeword
-	and data words to see how : DOUBLE DUP + ; really looks in memory.
+Remember  our dictionary  entries (headers)?  Let's bring  those together
+with the codeword and data words to see how `: DOUBLE DUP + ;` really looks
+in memory.
 
+```
 	  pointer to previous word
 	   ^
 	   |
@@ -722,35 +748,42 @@ cold_start:			// High-level code without a codeword.
            ^       len                         pad  codeword      |
 	   |							  V
 	  LINK in next word				points to codeword of DUP
+```
 	
-	Initially we can't just write ": DOUBLE DUP + ;" (ie. that literal string) here because we
-	don't yet have anything to read the string, break it up at spaces, parse each word, etc. etc.
-	So instead we will have to define built-in words using the GNU assembler data constructors
-	(like .int, .byte, .string, .ascii and so on -- look them up in the gas info page if you are
-	unsure of them).
+Initially we  can't just  write "`:  DOUBLE DUP +  ;`" (ie.  that literal
+string) here because we don't yet have anything to read the string, break
+it up at  spaces, parse each word,  etc. etc. So instead we  will have to
+define built-in  words using  the GNU  assembler data  constructors (like
+`.int`, `.byte`, `.string`, .ascii  and so on -- look them  up in the gas
+info page if you are unsure of them).
 
-	The long way would be:
+The long way would be:
 
+```
 	.int <link to previous word>
 	.byte 6			// len
-	.ascii "DOUBLE"		// string
+	.ascii "DOUBLE"	// string
 	.byte 0			// padding
-DOUBLE: .int DOCOL		// codeword
+DOUBLE: .int DOCOL	// codeword
 	.int DUP		// pointer to codeword of DUP
 	.int PLUS		// pointer to codeword of +
 	.int EXIT		// pointer to codeword of EXIT
+```
 
-	That's going to get quite tedious rather quickly, so here I define an assembler macro
-	so that I can just write:
+That's going  to get quite  tedious rather quickly,  so here I  define an
+assembler macro so that I can just write:
 
+```
 	defword "DOUBLE",6,,DOUBLE
 	.int DUP,PLUS,EXIT
+```
 
-	and I'll get exactly the same effect.
+... and I'll get exactly the same effect.
 
-	Don't worry too much about the exact implementation details of this macro - it's complicated!
-*/
+Don't worry too much about the exact implementation details of this macro
+... it's complicated!
 
+```
 /* Flags - these are discussed later. */
 	.set F_IMMED,0x80
 	.set F_HIDDEN,0x20
@@ -774,15 +807,18 @@ name_\label :
 	.int DOCOL		// codeword - the interpreter
 	// list of word pointers follow
 	.endm
+```
 
-/*
-	Similarly I want a way to write words written in assembly language.  There will be quite a few
-	of these to start with because, well, everything has to start in assembly before there's
-	enough "infrastructure" to be able to start writing FORTH words, but also I want to define
-	some common FORTH words in assembly language for speed, even though I could write them in FORTH.
+Similarly I want a way to write words written in assembly language. There
+will be quite a few of these  to start with because, well, everything has
+to start in assembly before there's enough "infrastructure" to be able to
+start  writing `FORTH`  words,  but also  I want  to  define some  common
+`FORTH` words in  assembly language for speed, even though  I could write
+them in `FORTH`.
 
-	This is what DUP looks like in memory:
+This is what `DUP` looks like in memory:
 
+```
 	  pointer to previous word
 	   ^
 	   |
@@ -792,11 +828,15 @@ name_\label :
            ^       len              codeword			    which ends with NEXT.
 	   |
 	  LINK in next word
+```
 
-	Again, for brevity in writing the header I'm going to write an assembler macro called defcode.
-	As with defword above, don't worry about the complicated details of the macro.
-*/
+Again, for brevity in writing the  header I'm going to write an assembler
+macro called  `defcode`. As with  `defword` above, don't worry  about the
+complicated details of the macro.
 
+### x86 assembly macro `defcode`
+
+```
 	.macro defcode name, namelen, flags=0, label
 	.section .rodata
 	.align 4
@@ -815,34 +855,53 @@ name_\label :
 	.globl code_\label
 code_\label :			// assembler code follows
 	.endm
+```
 
-/*
-	Now some easy FORTH primitives.  These are written in assembly for speed.  If you understand
-	i386 assembly language then it is worth reading these.  However if you don't understand assembly
-	you can skip the details.
-*/
+Now  some easy  `FORTH` primitives.  These  are written  in assembly  for
+speed.  If you  understand  `i386`  assembly language  then  it is  worth
+reading these. However if you don't  understand assembly you can skip the
+details.
 
+### x86 assembly: implementing `DROP`
+
+```
 	defcode "DROP",4,,DROP
 	pop %eax		// drop top of stack
 	NEXT
+```
 
+### x86 assembly: implementing `SWAP`
+
+```
 	defcode "SWAP",4,,SWAP
 	pop %eax		// swap top two elements on stack
 	pop %ebx
 	push %eax
 	push %ebx
 	NEXT
+```
 
+### x86 assembly: implementing `DUP`
+
+```
 	defcode "DUP",3,,DUP
 	mov (%esp),%eax		// duplicate top of stack
 	push %eax
 	NEXT
+```
 
+### x86 assembly: implementing `OVER`
+
+```
 	defcode "OVER",4,,OVER
 	mov 4(%esp),%eax	// get the second element of stack
 	push %eax		// and push it on top
 	NEXT
+```
 
+### x86 assembly: implementing `ROT`
+
+```
 	defcode "ROT",3,,ROT
 	pop %eax
 	pop %ebx
@@ -851,7 +910,11 @@ code_\label :			// assembler code follows
 	push %eax
 	push %ecx
 	NEXT
+```
 
+### x86 assembly: implementing `-ROT`
+
+```
 	defcode "-ROT",4,,NROT
 	pop %eax
 	pop %ebx
@@ -860,19 +923,31 @@ code_\label :			// assembler code follows
 	push %ecx
 	push %ebx
 	NEXT
+```
 
+### x86 assembly: implementing `2DROP`
+
+```
 	defcode "2DROP",5,,TWODROP // drop top two elements of stack
 	pop %eax
 	pop %eax
 	NEXT
+```
 
+### x86 assembly: implementing `2DUP`
+
+```
 	defcode "2DUP",4,,TWODUP // duplicate top two elements of stack
 	mov (%esp),%eax
 	mov 4(%esp),%ebx
 	push %ebx
 	push %eax
 	NEXT
+```
 
+### x86 assembly: implementing `2SWAP`
+
+```
 	defcode "2SWAP",5,,TWOSWAP // swap top two pairs of elements of stack
 	pop %eax
 	pop %ebx
@@ -883,53 +958,88 @@ code_\label :			// assembler code follows
 	push %edx
 	push %ecx
 	NEXT
+```
 
+### x86 assembly: implementing `?DUP`
+
+```
 	defcode "?DUP",4,,QDUP	// duplicate top of stack if non-zero
 	movl (%esp),%eax
 	test %eax,%eax
 	jz 1f
 	push %eax
 1:	NEXT
+```
 
+### x86 assembly: implementing `1+`
+
+```
 	defcode "1+",2,,INCR
 	incl (%esp)		// increment top of stack
 	NEXT
+```
 
+### x86 assembly: implementing `1-`
+
+```
 	defcode "1-",2,,DECR
 	decl (%esp)		// decrement top of stack
 	NEXT
+```
 
+### x86 assembly: implementing `4+`
+
+```
 	defcode "4+",2,,INCR4
 	addl $4,(%esp)		// add 4 to top of stack
 	NEXT
+```
 
+### x86 assembly: implementing `4-`
+
+```
 	defcode "4-",2,,DECR4
 	subl $4,(%esp)		// subtract 4 from top of stack
 	NEXT
+```
 
+### x86 assembly: implementing `+`
+
+```
 	defcode "+",1,,ADD
 	pop %eax		// get top of stack
 	addl %eax,(%esp)	// and add it to next word on stack
 	NEXT
+```
 
+### x86 assembly: implementing `-`
+
+```
 	defcode "-",1,,SUB
 	pop %eax		// get top of stack
 	subl %eax,(%esp)	// and subtract it from next word on stack
 	NEXT
+```
 
+### x86 assembly: implementing `*`
+
+```
 	defcode "*",1,,MUL
 	pop %eax
 	pop %ebx
 	imull %ebx,%eax
 	push %eax		// ignore overflow
 	NEXT
+```
 
-/*
-	In this FORTH, only /MOD is primitive.  Later we will define the / and MOD words in
-	terms of the primitive /MOD.  The design of the i386 assembly instruction idiv which
-	leaves both quotient and remainder makes this the obvious choice.
-*/
+In this `FORTH`,  only `/MOD` is primitive. Later we  will define the `/`
+and  `MOD` words  in terms  of the  primitive `/MOD`.  The design  of the
+`i386` assembly  instruction `idiv` which leaves  *both* **quotient** and
+**remainder** makes this the obvious choice.
 
+### x86 assembly: implementing `/MOD`
+
+```
 	defcode "/MOD",4,,DIVMOD
 	xor %edx,%edx
 	pop %ebx
@@ -938,16 +1048,18 @@ code_\label :			// assembler code follows
 	push %edx		// push remainder
 	push %eax		// push quotient
 	NEXT
+```
 
-/*
-	Lots of comparison operations like =, <, >, etc..
+Lots of comparison operations like =, <, >, etc..
 
-	ANS FORTH says that the comparison words should return all (binary) 1's for
-	TRUE and all 0's for FALSE.  However this is a bit of a strange convention
-	so this FORTH breaks it and returns the more normal (for C programmers ...)
-	1 meaning TRUE and 0 meaning FALSE.
-*/
+`ANS FORTH`  says that  the comparison words  should return  all (binary)
+`1`'s for `TRUE`  and all `0`'s for  `FALSE`. However this is a  bit of a
+strange convention so this `FORTH` breaks  it and returns the more normal
+(for `C` programmers ...) 1 meaning `TRUE` and `0` meaning `FALSE`.
 
+### x86 assembly: implementing `=`
+
+```
 	defcode "=",1,,EQU	// top two words are equal?
 	pop %eax
 	pop %ebx
@@ -956,7 +1068,11 @@ code_\label :			// assembler code follows
 	movzbl %al,%eax
 	pushl %eax
 	NEXT
+```
 
+### x86 assembly: implementing `<>`
+
+```
 	defcode "<>",2,,NEQU	// top two words are not equal?
 	pop %eax
 	pop %ebx
@@ -965,7 +1081,11 @@ code_\label :			// assembler code follows
 	movzbl %al,%eax
 	pushl %eax
 	NEXT
+```
 
+### x86 assembly: implementing `<`
+
+```
 	defcode "<",1,,LT
 	pop %eax
 	pop %ebx
@@ -974,7 +1094,11 @@ code_\label :			// assembler code follows
 	movzbl %al,%eax
 	pushl %eax
 	NEXT
+```
 
+### x86 assembly: implementing `>`
+
+```
 	defcode ">",1,,GT
 	pop %eax
 	pop %ebx
@@ -983,7 +1107,11 @@ code_\label :			// assembler code follows
 	movzbl %al,%eax
 	pushl %eax
 	NEXT
+```
 
+### x86 assembly: implementing `<=`
+
+```
 	defcode "<=",2,,LE
 	pop %eax
 	pop %ebx
@@ -992,7 +1120,11 @@ code_\label :			// assembler code follows
 	movzbl %al,%eax
 	pushl %eax
 	NEXT
+```
 
+### x86 assembly: implementing `>=`
+
+```
 	defcode ">=",2,,GE
 	pop %eax
 	pop %ebx
@@ -1001,7 +1133,11 @@ code_\label :			// assembler code follows
 	movzbl %al,%eax
 	pushl %eax
 	NEXT
+```
 
+### x86 assembly: implementing `0=`
+
+```
 	defcode "0=",2,,ZEQU	// top of stack equals 0?
 	pop %eax
 	test %eax,%eax
@@ -1009,6 +1145,7 @@ code_\label :			// assembler code follows
 	movzbl %al,%eax
 	pushl %eax
 	NEXT
+```
 
 	defcode "0<>",3,,ZNEQU	// top of stack not 0?
 	pop %eax
