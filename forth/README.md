@@ -9,7 +9,7 @@ $Id: jonesforth.S,v 1.47 2009-09-11 08:33:13 rich Exp $
 To build:
 
 ```
-	gcc -m32 -nostdlib -static -Wl,-Ttext,0 -Wl,--build-id=none -o jonesforth jonesforth.S
+    gcc -m32 -nostdlib -static -Wl,-Ttext,0 -Wl,--build-id=none -o jonesforth jonesforth.S
 ```
 
 ## TABLE OF CONTENTS
@@ -35,6 +35,7 @@ To build:
   * [PARAMETER/DATA STACK](#PARAMETER/DATA-STACK)
   * [INPUT AND OUTPUT](#INPUT-AND-OUTPUTSTACK)
   * [DICTIONARY LOOK UPS](#DICTIONARY-LOOK-UPS)
+  * [COMPILING](#COMPILING)
 
 ## INTRODUCTION
 
@@ -107,7 +108,7 @@ here are some online references to read:
 ### x86 assembly directive
 
 ```
-	.set JONES_VERSION,47
+    .set JONES_VERSION,47
 ```
 ## ACKNOWLEDGEMENTS
 
@@ -122,7 +123,7 @@ Some parts of this FORTH are also based on this IOCCC entry from 1992:
 I was  very proud  when Sean  Barrett, the original  author of  the IOCCC
 entry, commented in the LtU thread bout this `FORTH`:
 
-  *	http://lambda-the-ultimate.org/node/2452#comment-36818
+  *    http://lambda-the-ultimate.org/node/2452#comment-36818
 
 And finally I'd like to  acknowledge the (possibly forgotten?) authors of
 `ARTIC  FORTH` because  their  original  program which  I  still have  on
@@ -151,9 +152,9 @@ is at least this wide:
 Secondly make sure TABS are set  to 8 characters. The following should be
 a vertical line. If not, sort out your tabs.
 
-		|
         |
-    	|
+        |
+        |
 
 Thirdly I assume that your screen is at least 50 characters high.
 
@@ -186,20 +187,20 @@ is:
 ... and to run it:
 
 ```
-	cat jonesforth.f - | ./jonesforth
+    cat jonesforth.f - | ./jonesforth
 ```
 
 If you want to run your own `FORTH` programs you can do:
 
 ```
-	cat jonesforth.f myprog.f | ./jonesforth
+    cat jonesforth.f myprog.f | ./jonesforth
 ```
 
 If you want to load your own  `FORTH` code and then continue reading user
 commands, you can do:
 
 ```
-	cat jonesforth.f myfunctions.f - | ./jonesforth
+    cat jonesforth.f myfunctions.f - | ./jonesforth
 ```
 
 ## ASSEMBLER
@@ -225,8 +226,8 @@ about gas (the GNU assembler):
     * So `mov %eax, %ecx` moves `%eax` -> `%ecx`
   * Constants are  prefixed with '**$**',  and you mustn't forget  it! If
     you forget it then it causes a read from memory instead, so:
-	* `mov $2, %eax` moves number 2 into **%eax**
-	* `mov 2, %eax`	reads the 32-bit word from *memory address* `2`  into
+    * `mov $2, %eax` moves number 2 into **%eax**
+    * `mov 2, %eax`    reads the 32-bit word from *memory address* `2`  into
        **%eax** (ie. most likely a mistake)
   * `gas` has a funky syntax for local labels, where:
     * '**1f**' (etc.) means label '1:' "forwards"
@@ -333,12 +334,12 @@ arguments. (Don't worry for now that  such a language would be completely
 useless!) So in our peculiar `C`, code would look like this:
 
 ```
-	f ()
-	{
+    f ()
+    {
         a ();
-	    b ();
-	    c ();
-	}
+        b ();
+        c ();
+    }
 ```
 
 ... and so on. How would a  function, say '**f**' above, be compiled by a
@@ -348,11 +349,11 @@ right hand side I've written the actual `i386` machine code:
 ### x86 assembly scheme demonstrating function calls
 
 ```
-	f:
-	  CALL a			E8 08 00 00 00
-	  CALL b			E8 1C 00 00 00
-	  CALL c			E8 2C 00 00 00
-	  ; ignore the return from the function for now
+    f:
+      CALL a            E8 08 00 00 00
+      CALL b            E8 1C 00 00 00
+      CALL c            E8 2C 00 00 00
+      ; ignore the return from the function for now
 ```
 
 "**E8**" is the `x86` machine code to "**CALL**" a function. In the first
@@ -362,9 +363,9 @@ We can  save 20%  in code  size (and therefore,  in expensive  memory) by
 compressing this into just:
 
 ```
-	08 00 00 00		Just the function addresses, without
-	1C 00 00 00		the CALL prefix.
-	2C 00 00 00
+    08 00 00 00        Just the function addresses, without
+    1C 00 00 00        the CALL prefix.
+    2C 00 00 00
 ```
 
 On  a 16-bit  machine  like the  ones which  originally  ran `FORTH`  the
@@ -386,9 +387,9 @@ bytes  of machine  code. Let's  store  the pointer  to the  next word  to
 execute in the **%esi** register:
 
 ```
-    	08 00 00 00	<- We're executing this one now
+        08 00 00 00    <- We're executing this one now
 %esi -> 1C 00 00 00 <- this will be the _next_ one to execute
-		2C 00 00 00
+        2C 00 00 00
 ```
 
 The all-important  `i386` instruction  is called  **LODSL** (or  in Intel
@@ -397,8 +398,8 @@ manuals, **LODSW**). It  does two things. Firstly it reads  the memory at
 by 4 bytes. So after **LODSL**, the situation now looks like this:
 
 ```
-		08 00 00 00	<- We're still executing this one
-		1C 00 00 00	<- %eax now contains this address (0x0000001C)
+        08 00 00 00    <- We're still executing this one
+        1C 00 00 00    <- %eax now contains this address (0x0000001C)
 %esi -> 2C 00 00 00
 ```
 
@@ -407,8 +408,8 @@ single x86 instruction  written `JMP *(%eax)`. And after  doing the jump,
 the situation looks like:
 
 ```
-		08 00 00 00
-		1C 00 00 00	<- Now we're executing this subroutine.
+        08 00 00 00
+        1C 00 00 00    <- Now we're executing this subroutine.
 %esi -> 2C 00 00 00
 ```
 
@@ -422,10 +423,10 @@ And that brings us to our first piece of actual code!  Well, it's a *macro*:
 
 ```
 /* NEXT macro. */
-	.macro NEXT
-	lodsl
-	jmp *(%eax)
-	.endm
+    .macro NEXT
+    lodsl
+    jmp *(%eax)
+    .endm
 ```
 
 The macro is  called **NEXT**. That's a `FORTH`-ism. It  expands to those
@@ -445,7 +446,7 @@ I'll just  give you a hint  of what is to  come by saying that  a `FORTH`
 definition such as:
 
 ```
-	: QUADRUPLE DOUBLE DOUBLE ;
+    : QUADRUPLE DOUBLE DOUBLE ;
 ```
 
 ...  actually compiles  (almost, not  precisely but  we'll see  why in  a
@@ -468,7 +469,7 @@ function. In the direct threaded code, `QUADRUPLE` would look like:
 +------------------+
 | addr of DOUBLE   | ------------------> (assembly code to do the double)
 +------------------+                    NEXT
-%esi ->	| addr of DOUBLE   |
+%esi ->    | addr of DOUBLE   |
 +------------------+
 ```
 
@@ -486,31 +487,31 @@ Let's have  a look  at how  **QUADRUPLE** and  **DOUBLE** really  look in
 ```
 
 ```
-		+------------------+
-		| codeword         |		   : DOUBLE DUP + ;
-		+------------------+
-		| addr of DOUBLE  ---------------> +------------------+
-		+------------------+               | codeword         |
-		| addr of DOUBLE   |		   +------------------+
-		+------------------+	   	   | addr of DUP   --------------> +------------------+
-		| addr of EXIT	   |		   +------------------+            | codeword      -------+
-		+------------------+	   %esi -> | addr of +     --------+	   +------------------+   |
-						   +------------------+	   |	   | assembly to    <-----+
-						   | addr of EXIT     |    |       | implement DUP    |
-						   +------------------+	   |	   |	..	      |
-									   |	   |    ..            |
-									   |	   | NEXT             |
-									   |	   +------------------+
-									   |
-									   +-----> +------------------+
-										   | codeword      -------+
-										   +------------------+   |
-										   | assembly to   <------+
-										   | implement +      |
-										   | 	..            |
-										   | 	..            |
-										   | NEXT      	      |
-										   +------------------+
+        +------------------+
+        | codeword         |           : DOUBLE DUP + ;
+        +------------------+
+        | addr of DOUBLE  ---------------> +------------------+
+        +------------------+               | codeword         |
+        | addr of DOUBLE   |           +------------------+
+        +------------------+              | addr of DUP   --------------> +------------------+
+        | addr of EXIT       |           +------------------+            | codeword      -------+
+        +------------------+       %esi -> | addr of +     --------+       +------------------+   |
+                           +------------------+       |       | assembly to    <-----+
+                           | addr of EXIT     |    |       | implement DUP    |
+                           +------------------+       |       |    ..          |
+                                       |       |    ..            |
+                                       |       | NEXT             |
+                                       |       +------------------+
+                                       |
+                                       +-----> +------------------+
+                                           | codeword      -------+
+                                           +------------------+   |
+                                           | assembly to   <------+
+                                           | implement +      |
+                                           |     ..            |
+                                           |     ..            |
+                                           | NEXT                |
+                                           +------------------+
 ```
 
 This is the part where you  may need an extra cup of tea/coffee/favourite
@@ -538,31 +539,31 @@ The assembly code for **DUP** eventually does a **NEXT**.  That:
     * jumps to the address in the codeword of **+** (its assembly code)
 
 ```
-		+------------------+
-		| codeword         |
-		+------------------+
-		| addr of DOUBLE  ---------------> +------------------+
-		+------------------+               | codeword         |
-		| addr of DOUBLE   |		   +------------------+
-		+------------------+	   	   | addr of DUP   --------------> +------------------+
-		| addr of EXIT	   |		   +------------------+            | codeword      -------+
-		+------------------+	   	   | addr of +     --------+	   +------------------+   |
-						   +------------------+	   |	   | assembly to    <-----+
-					   %esi -> | addr of EXIT     |    |       | implement DUP    |
-						   +------------------+	   |	   |	..	      |
-									   |	   |    ..            |
-									   |	   | NEXT             |
-									   |	   +------------------+
-									   |
-									   +-----> +------------------+
-										   | codeword      -------+
-										   +------------------+   |
-									now we're  | assembly to    <-----+
-									executing  | implement +      |
-									this	   | 	..            |
-									function   | 	..            |
-										   | NEXT      	      |
-										   +------------------+
+        +------------------+
+        | codeword         |
+        +------------------+
+        | addr of DOUBLE  ---------------> +------------------+
+        +------------------+               | codeword         |
+        | addr of DOUBLE   |           +------------------+
+        +------------------+              | addr of DUP   --------------> +------------------+
+        | addr of EXIT       |           +------------------+            | codeword      -------+
+        +------------------+              | addr of +     --------+       +------------------+   |
+                           +------------------+       |       | assembly to    <-----+
+                       %esi -> | addr of EXIT     |    |       | implement DUP    |
+                           +------------------+       |       |    ..          |
+                                       |       |    ..            |
+                                       |       | NEXT             |
+                                       |       +------------------+
+                                       |
+                                       +-----> +------------------+
+                                           | codeword      -------+
+                                           +------------------+   |
+                                    now we're  | assembly to    <-----+
+                                    executing  | implement +      |
+                                    this       |     ..            |
+                                    function   |     ..            |
+                                           | NEXT                |
+                                           +------------------+
 ```
 
 So I hope  that I've convinced you that **NEXT**  does roughly what you'd
@@ -621,15 +622,15 @@ on  the return  stack) or  "**POPRSP %ebx**"  (pop top  of return  stack into
 
 ```
 /* Macros to deal with the return stack. */
-	.macro PUSHRSP reg
-	lea -4(%ebp),%ebp	// push reg on to return stack
-	movl \reg,(%ebp)
-	.endm
+    .macro PUSHRSP reg
+    lea -4(%ebp),%ebp    // push reg on to return stack
+    movl \reg,(%ebp)
+    .endm
 
-	.macro POPRSP reg
-	mov (%ebp),\reg		// pop top of return stack to reg
-	lea 4(%ebp),%ebp
-	.endm
+    .macro POPRSP reg
+    mov (%ebp),\reg        // pop top of return stack to reg
+    lea 4(%ebp),%ebp
+    .endm
 ```
 
 And with that we can now talk about the interpreter.
@@ -650,29 +651,29 @@ of the first  data word. Finally after setting up  **%esi**, it just does
 
 ```
 /* DOCOL - the interpreter! */
-	.text
-	.align 4
+    .text
+    .align 4
 DOCOL:
-	PUSHRSP %esi		// push %esi on to the return stack
-	addl $4,%eax		// %eax points to codeword, so make
-	movl %eax,%esi		// %esi point to first data word
-	NEXT
+    PUSHRSP %esi        // push %esi on to the return stack
+    addl $4,%eax        // %eax points to codeword, so make
+    movl %eax,%esi        // %esi point to first data word
+    NEXT
 ```
 
 Just  to make  this  absolutely clear,  let's see  how  `DOCOL` works  when
 jumping from `QUADRUPLE` into `DOUBLE`:
 
 ```
-		QUADRUPLE:
-		+------------------+
-		| codeword         |
-		+------------------+		   DOUBLE:
-		| addr of DOUBLE  ---------------> +------------------+
-		+------------------+       %eax -> | addr of DOCOL    |
-	%esi ->	| addr of DOUBLE   |		   +------------------+
-		+------------------+	   	   | addr of DUP      |
-		| addr of EXIT	   |		   +------------------+
-		+------------------+               | etc.             |
+        QUADRUPLE:
+        +------------------+
+        | codeword         |
+        +------------------+           DOUBLE:
+        | addr of DOUBLE  ---------------> +------------------+
+        +------------------+       %eax -> | addr of DOCOL    |
+    %esi ->    | addr of DOUBLE   |           +------------------+
+        +------------------+              | addr of DUP      |
+        | addr of EXIT       |           +------------------+
+        +------------------+               | etc.             |
 ```
 
 First, the  call to  `DOUBLE` calls `DOCOL`  (the codeword  of `DOUBLE`).
@@ -681,16 +682,16 @@ First, the  call to  `DOUBLE` calls `DOCOL`  (the codeword  of `DOUBLE`).
 to get our new **%esi**:
 
 ```
-		QUADRUPLE:
-		+------------------+
-		| codeword         |
-		+------------------+		   DOUBLE:
-		| addr of DOUBLE  ---------------> +------------------+
-top of return	+------------------+       %eax -> | addr of DOCOL    |
-stack points ->	| addr of DOUBLE   |	   + 4 =   +------------------+
-		+------------------+	   %esi -> | addr of DUP      |
-		| addr of EXIT	   |		   +------------------+
-		+------------------+               | etc.             |
+        QUADRUPLE:
+        +------------------+
+        | codeword         |
+        +------------------+           DOUBLE:
+        | addr of DOUBLE  ---------------> +------------------+
+top of return    +------------------+       %eax -> | addr of DOCOL    |
+stack points ->    | addr of DOUBLE   |       + 4 =   +------------------+
+        +------------------+       %esi -> | addr of DUP      |
+        | addr of EXIT       |           +------------------+
+        +------------------+               | etc.             |
 ```
 
 Then  we do  `NEXT`,  and because  of  the magic  of  threaded code  that
@@ -706,7 +707,7 @@ code and  see a word  with a codeword of  `0`, you will  immediately know
 that the word is written in `FORTH` (it's not an assembler primitive) and
 so uses `DOCOL` as the interpreter.
 
-### STARTING UP
+## STARTING UP
 
 Now let's get down  to nuts and bolts. When we start  the program we need
 to set up a  few things like the return stack. But as  soon as we can, we
@@ -725,20 +726,20 @@ to "quit" your program and go back to interpreting).
 
 ```
 /* Assembler entry point. */
-	.text
-	.globl _start
+    .text
+    .globl _start
 _start:
-	cld
-	mov %esp,var_S0		// Save the initial data stack pointer in FORTH variable S0.
-	mov $return_stack_top,%ebp // Initialise the return stack.
-	call set_up_data_segment
+    cld
+    mov %esp,var_S0        // Save the initial data stack pointer in FORTH variable S0.
+    mov $return_stack_top,%ebp // Initialise the return stack.
+    call set_up_data_segment
 
-	mov $cold_start,%esi	// Initialise interpreter.
-	NEXT			// Run interpreter!
+    mov $cold_start,%esi    // Initialise interpreter.
+    NEXT            // Run interpreter!
 
-	.section .rodata
-cold_start:			// High-level code without a codeword.
-	.int QUIT
+    .section .rodata
+cold_start:            // High-level code without a codeword.
+    .int QUIT
 ```
 
 ## BUILT-IN WORDS
@@ -748,17 +749,17 @@ with the codeword and data words to see how `: DOUBLE DUP + ;` really looks
 in memory.
 
 ```
-	  pointer to previous word
-	   ^
-	   |
-	+--|------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
-	| LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      | DUP        | +          | EXIT       |
-	+---------+---+---+---+---+---+---+---+---+------------+--|---------+------------+------------+
+      pointer to previous word
+       ^
+       |
+    +--|------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
+    | LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      | DUP        | +          | EXIT       |
+    +---------+---+---+---+---+---+---+---+---+------------+--|---------+------------+------------+
            ^       len                         pad  codeword      |
-	   |							  V
-	  LINK in next word				points to codeword of DUP
+       |                              V
+      LINK in next word                points to codeword of DUP
 ```
-	
+    
 Initially we  can't just  write "`:  DOUBLE DUP +  ;`" (ie.  that literal
 string) here because we don't yet have anything to read the string, break
 it up at  spaces, parse each word,  etc. etc. So instead we  will have to
@@ -769,22 +770,22 @@ info page if you are unsure of them).
 The long way would be:
 
 ```
-	.int <link to previous word>
-	.byte 6			// len
-	.ascii "DOUBLE"	// string
-	.byte 0			// padding
-DOUBLE: .int DOCOL	// codeword
-	.int DUP		// pointer to codeword of DUP
-	.int PLUS		// pointer to codeword of +
-	.int EXIT		// pointer to codeword of EXIT
+    .int <link to previous word>
+    .byte 6            // len
+    .ascii "DOUBLE"    // string
+    .byte 0            // padding
+DOUBLE: .int DOCOL    // codeword
+    .int DUP        // pointer to codeword of DUP
+    .int PLUS        // pointer to codeword of +
+    .int EXIT        // pointer to codeword of EXIT
 ```
 
 That's going  to get quite  tedious rather quickly,  so here I  define an
 assembler macro so that I can just write:
 
 ```
-	defword "DOUBLE",6,,DOUBLE
-	.int DUP,PLUS,EXIT
+    defword "DOUBLE",6,,DOUBLE
+    .int DUP,PLUS,EXIT
 ```
 
 ... and I'll get exactly the same effect.
@@ -794,28 +795,28 @@ Don't worry too much about the exact implementation details of this macro
 
 ```
 /* Flags - these are discussed later. */
-	.set F_IMMED,0x80
-	.set F_HIDDEN,0x20
-	.set F_LENMASK,0x1f	// length mask
+    .set F_IMMED,0x80
+    .set F_HIDDEN,0x20
+    .set F_LENMASK,0x1f    // length mask
 
-	// Store the chain of links.
-	.set link,0
+    // Store the chain of links.
+    .set link,0
 
-	.macro defword name, namelen, flags=0, label
-	.section .rodata
-	.align 4
-	.globl name_\label
+    .macro defword name, namelen, flags=0, label
+    .section .rodata
+    .align 4
+    .globl name_\label
 name_\label :
-	.int link		// link
-	.set link,name_\label
-	.byte \flags+\namelen	// flags + length byte
-	.ascii "\name"		// the name
-	.align 4		// padding to next 4 byte boundary
-	.globl \label
+    .int link        // link
+    .set link,name_\label
+    .byte \flags+\namelen    // flags + length byte
+    .ascii "\name"        // the name
+    .align 4        // padding to next 4 byte boundary
+    .globl \label
 \label :
-	.int DOCOL		// codeword - the interpreter
-	// list of word pointers follow
-	.endm
+    .int DOCOL        // codeword - the interpreter
+    // list of word pointers follow
+    .endm
 ```
 
 Similarly I want a way to write words written in assembly language. There
@@ -828,15 +829,15 @@ them in `FORTH`.
 This is what `DUP` looks like in memory:
 
 ```
-	  pointer to previous word
-	   ^
-	   |
-	+--|------+---+---+---+---+------------+
-	| LINK    | 3 | D | U | P | code_DUP ---------------------> points to the assembly
-	+---------+---+---+---+---+------------+		    code used to write DUP,
-           ^       len              codeword			    which ends with NEXT.
-	   |
-	  LINK in next word
+      pointer to previous word
+       ^
+       |
+    +--|------+---+---+---+---+------------+
+    | LINK    | 3 | D | U | P | code_DUP ---------------------> points to the assembly
+    +---------+---+---+---+---+------------+            code used to write DUP,
+           ^       len              codeword                which ends with NEXT.
+       |
+      LINK in next word
 ```
 
 Again, for brevity in writing the  header I'm going to write an assembler
@@ -846,24 +847,24 @@ complicated details of the macro.
 ### x86 assembly macro `defcode`
 
 ```
-	.macro defcode name, namelen, flags=0, label
-	.section .rodata
-	.align 4
-	.globl name_\label
+    .macro defcode name, namelen, flags=0, label
+    .section .rodata
+    .align 4
+    .globl name_\label
 name_\label :
-	.int link		// link
-	.set link,name_\label
-	.byte \flags+\namelen	// flags + length byte
-	.ascii "\name"		// the name
-	.align 4		// padding to next 4 byte boundary
-	.globl \label
+    .int link        // link
+    .set link,name_\label
+    .byte \flags+\namelen    // flags + length byte
+    .ascii "\name"        // the name
+    .align 4        // padding to next 4 byte boundary
+    .globl \label
 \label :
-	.int code_\label	// codeword
-	.text
-	//.align 4
-	.globl code_\label
-code_\label :			// assembler code follows
-	.endm
+    .int code_\label    // codeword
+    .text
+    //.align 4
+    .globl code_\label
+code_\label :            // assembler code follows
+    .endm
 ```
 
 Now  some easy  `FORTH` primitives.  These  are written  in assembly  for
@@ -874,171 +875,171 @@ details.
 ### x86 assembly: implementing `DROP`
 
 ```
-	defcode "DROP",4,,DROP
-	pop %eax		// drop top of stack
-	NEXT
+    defcode "DROP",4,,DROP
+    pop %eax        // drop top of stack
+    NEXT
 ```
 
 ### x86 assembly: implementing `SWAP`
 
 ```
-	defcode "SWAP",4,,SWAP
-	pop %eax		// swap top two elements on stack
-	pop %ebx
-	push %eax
-	push %ebx
-	NEXT
+    defcode "SWAP",4,,SWAP
+    pop %eax        // swap top two elements on stack
+    pop %ebx
+    push %eax
+    push %ebx
+    NEXT
 ```
 
 ### x86 assembly: implementing `DUP`
 
 ```
-	defcode "DUP",3,,DUP
-	mov (%esp),%eax		// duplicate top of stack
-	push %eax
-	NEXT
+    defcode "DUP",3,,DUP
+    mov (%esp),%eax        // duplicate top of stack
+    push %eax
+    NEXT
 ```
 
 ### x86 assembly: implementing `OVER`
 
 ```
-	defcode "OVER",4,,OVER
-	mov 4(%esp),%eax	// get the second element of stack
-	push %eax		// and push it on top
-	NEXT
+    defcode "OVER",4,,OVER
+    mov 4(%esp),%eax    // get the second element of stack
+    push %eax        // and push it on top
+    NEXT
 ```
 
 ### x86 assembly: implementing `ROT`
 
 ```
-	defcode "ROT",3,,ROT
-	pop %eax
-	pop %ebx
-	pop %ecx
-	push %ebx
-	push %eax
-	push %ecx
-	NEXT
+    defcode "ROT",3,,ROT
+    pop %eax
+    pop %ebx
+    pop %ecx
+    push %ebx
+    push %eax
+    push %ecx
+    NEXT
 ```
 
 ### x86 assembly: implementing `-ROT`
 
 ```
-	defcode "-ROT",4,,NROT
-	pop %eax
-	pop %ebx
-	pop %ecx
-	push %eax
-	push %ecx
-	push %ebx
-	NEXT
+    defcode "-ROT",4,,NROT
+    pop %eax
+    pop %ebx
+    pop %ecx
+    push %eax
+    push %ecx
+    push %ebx
+    NEXT
 ```
 
 ### x86 assembly: implementing `2DROP`
 
 ```
-	defcode "2DROP",5,,TWODROP // drop top two elements of stack
-	pop %eax
-	pop %eax
-	NEXT
+    defcode "2DROP",5,,TWODROP // drop top two elements of stack
+    pop %eax
+    pop %eax
+    NEXT
 ```
 
 ### x86 assembly: implementing `2DUP`
 
 ```
-	defcode "2DUP",4,,TWODUP // duplicate top two elements of stack
-	mov (%esp),%eax
-	mov 4(%esp),%ebx
-	push %ebx
-	push %eax
-	NEXT
+    defcode "2DUP",4,,TWODUP // duplicate top two elements of stack
+    mov (%esp),%eax
+    mov 4(%esp),%ebx
+    push %ebx
+    push %eax
+    NEXT
 ```
 
 ### x86 assembly: implementing `2SWAP`
 
 ```
-	defcode "2SWAP",5,,TWOSWAP // swap top two pairs of elements of stack
-	pop %eax
-	pop %ebx
-	pop %ecx
-	pop %edx
-	push %ebx
-	push %eax
-	push %edx
-	push %ecx
-	NEXT
+    defcode "2SWAP",5,,TWOSWAP // swap top two pairs of elements of stack
+    pop %eax
+    pop %ebx
+    pop %ecx
+    pop %edx
+    push %ebx
+    push %eax
+    push %edx
+    push %ecx
+    NEXT
 ```
 
 ### x86 assembly: implementing `?DUP`
 
 ```
-	defcode "?DUP",4,,QDUP	// duplicate top of stack if non-zero
-	movl (%esp),%eax
-	test %eax,%eax
-	jz 1f
-	push %eax
-1:	NEXT
+    defcode "?DUP",4,,QDUP    // duplicate top of stack if non-zero
+    movl (%esp),%eax
+    test %eax,%eax
+    jz 1f
+    push %eax
+1:    NEXT
 ```
 
 ### x86 assembly: implementing `1+`
 
 ```
-	defcode "1+",2,,INCR
-	incl (%esp)		// increment top of stack
-	NEXT
+    defcode "1+",2,,INCR
+    incl (%esp)        // increment top of stack
+    NEXT
 ```
 
 ### x86 assembly: implementing `1-`
 
 ```
-	defcode "1-",2,,DECR
-	decl (%esp)		// decrement top of stack
-	NEXT
+    defcode "1-",2,,DECR
+    decl (%esp)        // decrement top of stack
+    NEXT
 ```
 
 ### x86 assembly: implementing `4+`
 
 ```
-	defcode "4+",2,,INCR4
-	addl $4,(%esp)		// add 4 to top of stack
-	NEXT
+    defcode "4+",2,,INCR4
+    addl $4,(%esp)        // add 4 to top of stack
+    NEXT
 ```
 
 ### x86 assembly: implementing `4-`
 
 ```
-	defcode "4-",2,,DECR4
-	subl $4,(%esp)		// subtract 4 from top of stack
-	NEXT
+    defcode "4-",2,,DECR4
+    subl $4,(%esp)        // subtract 4 from top of stack
+    NEXT
 ```
 
 ### x86 assembly: implementing `+`
 
 ```
-	defcode "+",1,,ADD
-	pop %eax		// get top of stack
-	addl %eax,(%esp)	// and add it to next word on stack
-	NEXT
+    defcode "+",1,,ADD
+    pop %eax        // get top of stack
+    addl %eax,(%esp)    // and add it to next word on stack
+    NEXT
 ```
 
 ### x86 assembly: implementing `-`
 
 ```
-	defcode "-",1,,SUB
-	pop %eax		// get top of stack
-	subl %eax,(%esp)	// and subtract it from next word on stack
-	NEXT
+    defcode "-",1,,SUB
+    pop %eax        // get top of stack
+    subl %eax,(%esp)    // and subtract it from next word on stack
+    NEXT
 ```
 
 ### x86 assembly: implementing `*`
 
 ```
-	defcode "*",1,,MUL
-	pop %eax
-	pop %ebx
-	imull %ebx,%eax
-	push %eax		// ignore overflow
-	NEXT
+    defcode "*",1,,MUL
+    pop %eax
+    pop %ebx
+    imull %ebx,%eax
+    push %eax        // ignore overflow
+    NEXT
 ```
 
 In this `FORTH`,  only `/MOD` is primitive. Later we  will define the `/`
@@ -1049,14 +1050,14 @@ and  `MOD` words  in terms  of the  primitive `/MOD`.  The design  of the
 ### x86 assembly: implementing `/MOD`
 
 ```
-	defcode "/MOD",4,,DIVMOD
-	xor %edx,%edx
-	pop %ebx
-	pop %eax
-	idivl %ebx
-	push %edx		// push remainder
-	push %eax		// push quotient
-	NEXT
+    defcode "/MOD",4,,DIVMOD
+    xor %edx,%edx
+    pop %ebx
+    pop %eax
+    idivl %ebx
+    push %edx        // push remainder
+    push %eax        // push quotient
+    NEXT
 ```
 
 Lots of comparison operations like =, <, >, etc..
@@ -1069,186 +1070,186 @@ strange convention so this `FORTH` breaks  it and returns the more normal
 ### x86 assembly: implementing `=`
 
 ```
-	defcode "=",1,,EQU	// top two words are equal?
-	pop %eax
-	pop %ebx
-	cmp %ebx,%eax
-	sete %al
-	movzbl %al,%eax
-	pushl %eax
-	NEXT
+    defcode "=",1,,EQU    // top two words are equal?
+    pop %eax
+    pop %ebx
+    cmp %ebx,%eax
+    sete %al
+    movzbl %al,%eax
+    pushl %eax
+    NEXT
 ```
 
 ### x86 assembly: implementing `<>`
 
 ```
-	defcode "<>",2,,NEQU	// top two words are not equal?
-	pop %eax
-	pop %ebx
-	cmp %ebx,%eax
-	setne %al
-	movzbl %al,%eax
-	pushl %eax
-	NEXT
+    defcode "<>",2,,NEQU    // top two words are not equal?
+    pop %eax
+    pop %ebx
+    cmp %ebx,%eax
+    setne %al
+    movzbl %al,%eax
+    pushl %eax
+    NEXT
 ```
 
 ### x86 assembly: implementing `<`
 
 ```
-	defcode "<",1,,LT
-	pop %eax
-	pop %ebx
-	cmp %eax,%ebx
-	setl %al
-	movzbl %al,%eax
-	pushl %eax
-	NEXT
+    defcode "<",1,,LT
+    pop %eax
+    pop %ebx
+    cmp %eax,%ebx
+    setl %al
+    movzbl %al,%eax
+    pushl %eax
+    NEXT
 ```
 
 ### x86 assembly: implementing `>`
 
 ```
-	defcode ">",1,,GT
-	pop %eax
-	pop %ebx
-	cmp %eax,%ebx
-	setg %al
-	movzbl %al,%eax
-	pushl %eax
-	NEXT
+    defcode ">",1,,GT
+    pop %eax
+    pop %ebx
+    cmp %eax,%ebx
+    setg %al
+    movzbl %al,%eax
+    pushl %eax
+    NEXT
 ```
 
 ### x86 assembly: implementing `<=`
 
 ```
-	defcode "<=",2,,LE
-	pop %eax
-	pop %ebx
-	cmp %eax,%ebx
-	setle %al
-	movzbl %al,%eax
-	pushl %eax
-	NEXT
+    defcode "<=",2,,LE
+    pop %eax
+    pop %ebx
+    cmp %eax,%ebx
+    setle %al
+    movzbl %al,%eax
+    pushl %eax
+    NEXT
 ```
 
 ### x86 assembly: implementing `>=`
 
 ```
-	defcode ">=",2,,GE
-	pop %eax
-	pop %ebx
-	cmp %eax,%ebx
-	setge %al
-	movzbl %al,%eax
-	pushl %eax
-	NEXT
+    defcode ">=",2,,GE
+    pop %eax
+    pop %ebx
+    cmp %eax,%ebx
+    setge %al
+    movzbl %al,%eax
+    pushl %eax
+    NEXT
 ```
 
 ### x86 assembly: implementing `0=`
 
 ```
-	defcode "0=",2,,ZEQU	// top of stack equals 0?
-	pop %eax
-	test %eax,%eax
-	setz %al
-	movzbl %al,%eax
-	pushl %eax
-	NEXT
+    defcode "0=",2,,ZEQU    // top of stack equals 0?
+    pop %eax
+    test %eax,%eax
+    setz %al
+    movzbl %al,%eax
+    pushl %eax
+    NEXT
 ```
 
 ### x86 assembly: implementing `0<>`
 
 ```
-	defcode "0<>",3,,ZNEQU	// top of stack not 0?
-	pop %eax
-	test %eax,%eax
-	setnz %al
-	movzbl %al,%eax
-	pushl %eax
-	NEXT
+    defcode "0<>",3,,ZNEQU    // top of stack not 0?
+    pop %eax
+    test %eax,%eax
+    setnz %al
+    movzbl %al,%eax
+    pushl %eax
+    NEXT
 ```
 
 ### x86 assembly: implementing `0<`
 
 ```
-	defcode "0<",2,,ZLT	// comparisons with 0
-	pop %eax
-	test %eax,%eax
-	setl %al
-	movzbl %al,%eax
-	pushl %eax
-	NEXT
+    defcode "0<",2,,ZLT    // comparisons with 0
+    pop %eax
+    test %eax,%eax
+    setl %al
+    movzbl %al,%eax
+    pushl %eax
+    NEXT
 ```
 
 ### x86 assembly: implementing `0>`
 
 ```
-	defcode "0>",2,,ZGT
-	pop %eax
-	test %eax,%eax
-	setg %al
-	movzbl %al,%eax
-	pushl %eax
-	NEXT
+    defcode "0>",2,,ZGT
+    pop %eax
+    test %eax,%eax
+    setg %al
+    movzbl %al,%eax
+    pushl %eax
+    NEXT
 ```
 
 ### x86 assembly: implementing `0<=`
 
 ```
-	defcode "0<=",3,,ZLE
-	pop %eax
-	test %eax,%eax
-	setle %al
-	movzbl %al,%eax
-	pushl %eax
-	NEXT
+    defcode "0<=",3,,ZLE
+    pop %eax
+    test %eax,%eax
+    setle %al
+    movzbl %al,%eax
+    pushl %eax
+    NEXT
 ```
 
 ### x86 assembly: implementing `0>=`
 
 ```
-	defcode "0>=",3,,ZGE
-	pop %eax
-	test %eax,%eax
-	setge %al
-	movzbl %al,%eax
-	pushl %eax
-	NEXT
+    defcode "0>=",3,,ZGE
+    pop %eax
+    test %eax,%eax
+    setge %al
+    movzbl %al,%eax
+    pushl %eax
+    NEXT
 ```
 
 ### x86 assembly: implementing `AND`
 
 ```
-	defcode "AND",3,,AND	// bitwise AND
-	pop %eax
-	andl %eax,(%esp)
-	NEXT
+    defcode "AND",3,,AND    // bitwise AND
+    pop %eax
+    andl %eax,(%esp)
+    NEXT
 ```
 
 ### x86 assembly: implementing `OR`
 
 ```
-	defcode "OR",2,,OR	// bitwise OR
-	pop %eax
-	orl %eax,(%esp)
-	NEXT
+    defcode "OR",2,,OR    // bitwise OR
+    pop %eax
+    orl %eax,(%esp)
+    NEXT
 ```
 
 ### x86 assembly: implementing `XOR`
 
 ```
-	defcode "XOR",3,,XOR	// bitwise XOR
-	pop %eax
-	xorl %eax,(%esp)
-	NEXT
+    defcode "XOR",3,,XOR    // bitwise XOR
+    pop %eax
+    xorl %eax,(%esp)
+    NEXT
 ```
 
 ### x86 assembly: implementing `INVERT`
 
 ```
-	defcode "INVERT",6,,INVERT // this is the FORTH bitwise "NOT" function (cf. NEGATE and NOT)
-	notl (%esp)
-	NEXT
+    defcode "INVERT",6,,INVERT // this is the FORTH bitwise "NOT" function (cf. NEGATE and NOT)
+    notl (%esp)
+    NEXT
 ```
 
 ## RETURNING FROM FORTH WORDS
@@ -1258,28 +1259,28 @@ diagram `QUADRUPLE`  has called `DOUBLE`,  and `DOUBLE` is about  to exit
 (look at where **%esi** is pointing):
 
 ```
-		QUADRUPLE
-		+------------------+
-		| codeword         |
-		+------------------+		   DOUBLE
-		| addr of DOUBLE  ---------------> +------------------+
-		+------------------+               | codeword         |
-		| addr of DOUBLE   |		   +------------------+
-		+------------------+	   	   | addr of DUP      |
-		| addr of EXIT	   |		   +------------------+
-		+------------------+	   	   | addr of +        |
-						   +------------------+
-					   %esi -> | addr of EXIT     |
-						   +------------------+
+        QUADRUPLE
+        +------------------+
+        | codeword         |
+        +------------------+           DOUBLE
+        | addr of DOUBLE  ---------------> +------------------+
+        +------------------+               | codeword         |
+        | addr of DOUBLE   |           +------------------+
+        +------------------+              | addr of DUP      |
+        | addr of EXIT       |           +------------------+
+        +------------------+              | addr of +        |
+                           +------------------+
+                       %esi -> | addr of EXIT     |
+                           +------------------+
 ```
 
 What happens  when the  **+** function does  `NEXT`? Well,  the following
 code is executed:
 
 ### x86 assembly: implementing `EXIT`
-	defcode "EXIT",4,,EXIT
-	POPRSP %esi		// pop return stack into %esi
-	NEXT
+    defcode "EXIT",4,,EXIT
+    POPRSP %esi        // pop return stack into %esi
+    NEXT
 
 `EXIT` gets  the old **%esi**  which we saved  from before on  the return
 stack, and puts it in **%esi**.
@@ -1287,19 +1288,19 @@ stack, and puts it in **%esi**.
 So after this (but just before `NEXT`) we get:
 
 ```
-		QUADRUPLE
-		+------------------+
-		| codeword         |
-		+------------------+		   DOUBLE
-		| addr of DOUBLE  ---------------> +------------------+
-		+------------------+               | codeword         |
-	%esi ->	| addr of DOUBLE   |		   +------------------+
-		+------------------+	   	   | addr of DUP      |
-		| addr of EXIT	   |		   +------------------+
-		+------------------+	   	   | addr of +        |
-						   +------------------+
-						   | addr of EXIT     |
-						   +------------------+
+        QUADRUPLE
+        +------------------+
+        | codeword         |
+        +------------------+           DOUBLE
+        | addr of DOUBLE  ---------------> +------------------+
+        +------------------+               | codeword         |
+    %esi ->    | addr of DOUBLE   |           +------------------+
+        +------------------+              | addr of DUP      |
+        | addr of EXIT       |           +------------------+
+        +------------------+              | addr of +        |
+                           +------------------+
+                           | addr of EXIT     |
+                           +------------------+
 ```
 
 And `NEXT` just completes the job by,  well, in this case just by calling
@@ -1312,7 +1313,7 @@ that do anything apart from calling other functions. For example, suppose
 that `DOUBLE` was defined like this:
 
 ```
-	: DOUBLE 2 * ;
+    : DOUBLE 2 * ;
 ```
 
 It does the  same thing, but how  do we compile it since  it contains the
@@ -1324,9 +1325,9 @@ single literal that you wanted to use.
 `LIT`:
 
 ```
-	+---------------------------+-------+-------+-------+-------+-------+
-	| (usual header of DOUBLE)  | DOCOL | LIT   | 2     | *     | EXIT  |
-	+---------------------------+-------+-------+-------+-------+-------+
+    +---------------------------+-------+-------+-------+-------+-------+
+    | (usual header of DOUBLE)  | DOCOL | LIT   | 2     | *     | EXIT  |
+    +---------------------------+-------+-------+-------+-------+-------+
 ```
 
 `LIT` is executed in the normal way,  but what it does next is definitely
@@ -1342,16 +1343,16 @@ works:
 ### x86 assembly: implementing `LIT`
 
 ```
-	defcode "LIT",3,,LIT
+    defcode "LIT",3,,LIT
 
     // %esi points to the next command, but in this case it points to the
     // next  literal 32  bit  integer.  Get that  literal  into %eax  and
     // increment %esi. On x86, it's a convenient single byte instruction!
     // (cf. NEXT macro)
 
-	lodsl
-	push %eax		// push the literal number on to stack
-	NEXT
+    lodsl
+    push %eax        // push the literal number on to stack
+    NEXT
 ```
 
 ## MEMORY
@@ -1363,41 +1364,41 @@ frequently in `FORTH`, and these are the primitive words for doing it.
 ### x86 assembly: implementing `!`
 
 ```
-	defcode "!",1,,STORE
-	pop %ebx		// address to store at
-	pop %eax		// data to store there
-	mov %eax,(%ebx)		// store it
-	NEXT
+    defcode "!",1,,STORE
+    pop %ebx        // address to store at
+    pop %eax        // data to store there
+    mov %eax,(%ebx)        // store it
+    NEXT
 ```
 
 ### x86 assembly: implementing `@`
 
 ```
-	defcode "@",1,,FETCH
-	pop %ebx		// address to fetch
-	mov (%ebx),%eax		// fetch it
-	push %eax		// push value onto stack
-	NEXT
+    defcode "@",1,,FETCH
+    pop %ebx        // address to fetch
+    mov (%ebx),%eax        // fetch it
+    push %eax        // push value onto stack
+    NEXT
 ```
 
 ### x86 assembly: implementing `+!`
 
 ```
-	defcode "+!",2,,ADDSTORE
-	pop %ebx		// address
-	pop %eax		// the amount to add
-	addl %eax,(%ebx)	// add it
-	NEXT
+    defcode "+!",2,,ADDSTORE
+    pop %ebx        // address
+    pop %eax        // the amount to add
+    addl %eax,(%ebx)    // add it
+    NEXT
 ```
 
 ### x86 assembly: implementing `-!`
 
 ```
-	defcode "-!",2,,SUBSTORE
-	pop %ebx		// address
-	pop %eax		// the amount to subtract
-	subl %eax,(%ebx)	// add it
-	NEXT
+    defcode "-!",2,,SUBSTORE
+    pop %ebx        // address
+    pop %eax        // the amount to subtract
+    subl %eax,(%ebx)    // add it
+    NEXT
 ```
 
 `!` and `@` (`STORE` and `FETCH`) store 32-bit words. It's also useful to
@@ -1410,50 +1411,50 @@ Byte-oriented  operations only  work on  architectures which  permit them
 ### x86 assembly: implementing `C!`
 
 ```
-	defcode "C!",2,,STOREBYTE
-	pop %ebx		// address to store at
-	pop %eax		// data to store there
-	movb %al,(%ebx)		// store it
-	NEXT
+    defcode "C!",2,,STOREBYTE
+    pop %ebx        // address to store at
+    pop %eax        // data to store there
+    movb %al,(%ebx)        // store it
+    NEXT
 ```
 
 ### x86 assembly: implementing `C@`
 
 ```
-	defcode "C@",2,,FETCHBYTE
-	pop %ebx		// address to fetch
-	xor %eax,%eax
-	movb (%ebx),%al		// fetch it
-	push %eax		// push value onto stack
-	NEXT
+    defcode "C@",2,,FETCHBYTE
+    pop %ebx        // address to fetch
+    xor %eax,%eax
+    movb (%ebx),%al        // fetch it
+    push %eax        // push value onto stack
+    NEXT
 ```
 
 ### x86 assembly: implementing `C@C`
 
 ```
 /* C@C! is a useful byte copy primitive. */
-	defcode "C@C!",4,,CCOPY
-	movl 4(%esp),%ebx	// source address
-	movb (%ebx),%al		// get source character
-	pop %edi		// destination address
-	stosb			// copy to destination
-	push %edi		// increment destination address
-	incl 4(%esp)		// increment source address
-	NEXT
+    defcode "C@C!",4,,CCOPY
+    movl 4(%esp),%ebx    // source address
+    movb (%ebx),%al        // get source character
+    pop %edi        // destination address
+    stosb            // copy to destination
+    push %edi        // increment destination address
+    incl 4(%esp)        // increment source address
+    NEXT
 ```
 
 ### x86 assembly: implementing `CMOVE`
 
 ```
 /* and CMOVE is a block copy operation. */
-	defcode "CMOVE",5,,CMOVE
-	mov %esi,%edx		// preserve %esi
-	pop %ecx		// length
-	pop %edi		// destination address
-	pop %esi		// source address
-	rep movsb		// copy source to destination
-	mov %edx,%esi		// restore %esi
-	NEXT
+    defcode "CMOVE",5,,CMOVE
+    mov %esi,%edx        // preserve %esi
+    pop %ecx        // length
+    pop %edi        // destination address
+    pop %esi        // source address
+    rep movsb        // copy source to destination
+    mov %edx,%esi        // restore %esi
+    NEXT
 ```
 
 ## BUILT-IN VARIABLES
@@ -1467,7 +1468,7 @@ using `@` and  `!` operators. For example, to print  the current value of
 `LATEST` (and this can apply to any `FORTH` variable) you would do:
 
 ```
-	LATEST @ . CR
+    LATEST @ . CR
 ```
 
 To make  defining variables shorter,  I'm using a macro  called `defvar`,
@@ -1477,15 +1478,15 @@ uses `defcode` to do the dictionary header).
 ### x86 assembly: implementing `defvar` macro
 
 ```
-	.macro defvar name, namelen, flags=0, label, initial=0
-	defcode \name,\namelen,\flags,\label
-	push $var_\name
-	NEXT
-	.data
-	.align 4
+    .macro defvar name, namelen, flags=0, label, initial=0
+    defcode \name,\namelen,\flags,\label
+    push $var_\name
+    NEXT
+    .data
+    .align 4
 var_\name :
-	.int \initial
-	.endm
+    .int \initial
+    .endm
 ```
 
 The built-in variables are:
@@ -1501,12 +1502,12 @@ The built-in variables are:
 ### x86 assembly: deploying the variables
 
 ```
-	defvar "STATE",5,,STATE
-	defvar "HERE",4,,HERE
+    defvar "STATE",5,,STATE
+    defvar "HERE",4,,HERE
     // SYSCALL0 must be last in built-in dictionary
-	defvar "LATEST",6,,LATEST,name_SYSCALL0
-	defvar "S0",2,,SZ
-	defvar "BASE",4,,BASE,10
+    defvar "LATEST",6,,LATEST,name_SYSCALL0
+    defvar "S0",2,,SZ
+    defvar "BASE",4,,BASE,10
 ```
 
 ## BUILT-IN CONSTANTS
@@ -1531,38 +1532,38 @@ The built-in constants are:
 ### x86 assembly: implementing `defconst` macro
 
 ```
-//#include <asm-i386/unistd.h>	// you might need this instead
+//#include <asm-i386/unistd.h>    // you might need this instead
 #include <asm/unistd.h>
 
-	.macro defconst name, namelen, flags=0, label, value
-	defcode \name,\namelen,\flags,\label
-	push $\value
-	NEXT
-	.endm
+    .macro defconst name, namelen, flags=0, label, value
+    defcode \name,\namelen,\flags,\label
+    push $\value
+    NEXT
+    .endm
 
-	defconst "VERSION",7,,VERSION,JONES_VERSION
-	defconst "R0",2,,RZ,return_stack_top
-	defconst "DOCOL",5,,__DOCOL,DOCOL
-	defconst "F_IMMED",7,,__F_IMMED,F_IMMED
-	defconst "F_HIDDEN",8,,__F_HIDDEN,F_HIDDEN
-	defconst "F_LENMASK",9,,__F_LENMASK,F_LENMASK
+    defconst "VERSION",7,,VERSION,JONES_VERSION
+    defconst "R0",2,,RZ,return_stack_top
+    defconst "DOCOL",5,,__DOCOL,DOCOL
+    defconst "F_IMMED",7,,__F_IMMED,F_IMMED
+    defconst "F_HIDDEN",8,,__F_HIDDEN,F_HIDDEN
+    defconst "F_LENMASK",9,,__F_LENMASK,F_LENMASK
 
-	defconst "SYS_EXIT",8,,SYS_EXIT,__NR_exit
-	defconst "SYS_OPEN",8,,SYS_OPEN,__NR_open
-	defconst "SYS_CLOSE",9,,SYS_CLOSE,__NR_close
-	defconst "SYS_READ",8,,SYS_READ,__NR_read
-	defconst "SYS_WRITE",9,,SYS_WRITE,__NR_write
-	defconst "SYS_CREAT",9,,SYS_CREAT,__NR_creat
-	defconst "SYS_BRK",7,,SYS_BRK,__NR_brk
+    defconst "SYS_EXIT",8,,SYS_EXIT,__NR_exit
+    defconst "SYS_OPEN",8,,SYS_OPEN,__NR_open
+    defconst "SYS_CLOSE",9,,SYS_CLOSE,__NR_close
+    defconst "SYS_READ",8,,SYS_READ,__NR_read
+    defconst "SYS_WRITE",9,,SYS_WRITE,__NR_write
+    defconst "SYS_CREAT",9,,SYS_CREAT,__NR_creat
+    defconst "SYS_BRK",7,,SYS_BRK,__NR_brk
 
-	defconst "O_RDONLY",8,,__O_RDONLY,0
-	defconst "O_WRONLY",8,,__O_WRONLY,1
-	defconst "O_RDWR",6,,__O_RDWR,2
-	defconst "O_CREAT",7,,__O_CREAT,0100
-	defconst "O_EXCL",6,,__O_EXCL,0200
-	defconst "O_TRUNC",7,,__O_TRUNC,01000
-	defconst "O_APPEND",8,,__O_APPEND,02000
-	defconst "O_NONBLOCK",10,,__O_NONBLOCK,04000
+    defconst "O_RDONLY",8,,__O_RDONLY,0
+    defconst "O_WRONLY",8,,__O_WRONLY,1
+    defconst "O_RDWR",6,,__O_RDWR,2
+    defconst "O_CREAT",7,,__O_CREAT,0100
+    defconst "O_EXCL",6,,__O_EXCL,0200
+    defconst "O_TRUNC",7,,__O_TRUNC,01000
+    defconst "O_APPEND",8,,__O_APPEND,02000
+    defconst "O_NONBLOCK",10,,__O_NONBLOCK,04000
 ```
 
 ## RETURN STACK
@@ -1573,43 +1574,43 @@ register **%ebp** always points to the top of the return stack.
 ### x86 assembly: implementing `>R`
 
 ```
-	defcode ">R",2,,TOR
-	pop %eax		// pop parameter stack into %eax
-	PUSHRSP %eax		// push it on to the return stack
-	NEXT
+    defcode ">R",2,,TOR
+    pop %eax        // pop parameter stack into %eax
+    PUSHRSP %eax        // push it on to the return stack
+    NEXT
 ```
 
 ### x86 assembly: implementing `R>`
 
 ```
-	defcode "R>",2,,FROMR
-	POPRSP %eax		// pop return stack on to %eax
-	push %eax		// and push on to parameter stack
-	NEXT
+    defcode "R>",2,,FROMR
+    POPRSP %eax        // pop return stack on to %eax
+    push %eax        // and push on to parameter stack
+    NEXT
 ```
 
 ### x86 assembly: implementing `RSP@`
 
 ```
-	defcode "RSP@",4,,RSPFETCH
-	push %ebp
-	NEXT
+    defcode "RSP@",4,,RSPFETCH
+    push %ebp
+    NEXT
 ```
 
 ### x86 assembly: implementing `RSP!`
 
 ```
-	defcode "RSP!",4,,RSPSTORE
-	pop %ebp
-	NEXT
+    defcode "RSP!",4,,RSPSTORE
+    pop %ebp
+    NEXT
 ```
 
 ### x86 assembly: implementing `RDROP`
 
 ```
-	defcode "RDROP",5,,RDROP
-	addl $4,%ebp		// pop return stack and throw away
-	NEXT
+    defcode "RDROP",5,,RDROP
+    addl $4,%ebp        // pop return stack and throw away
+    NEXT
 ```
 
 ## PARAMETER/DATA STACK
@@ -1621,18 +1622,18 @@ Linux sets  up the  parameter stack  for us, and  it is  accessed through
 ### x86 assembly: implementing `DSP@`
 
 ```
-	defcode "DSP@",4,,DSPFETCH
-	mov %esp,%eax
-	push %eax
-	NEXT
+    defcode "DSP@",4,,DSPFETCH
+    mov %esp,%eax
+    push %eax
+    NEXT
 ```
 
 ### x86 assembly: implementing `DSP!`
 
 ```
-	defcode "DSP!",4,,DSPSTORE
-	pop %esp
-	NEXT
+    defcode "DSP!",4,,DSPSTORE
+    pop %esp
+    NEXT
 ```
 
 ## INPUT AND OUTPUT
@@ -1666,60 +1667,60 @@ stdin has closed,  it exits the program,  which is why when  you hit `^D`
 the `FORTH` system cleanly exits.
 
 ```
-     buffer			      bufftop
-	|				 |
-	V				 V
-	+-------------------------------+--------------------------------------+
-	| INPUT READ FROM STDIN ....... | unused part of the buffer            |
-	+-------------------------------+--------------------------------------+
-	                  ^
-			  |
-		       currkey (next character to read)
+     buffer                  bufftop
+    |                 |
+    V                 V
+    +-------------------------------+--------------------------------------+
+    | INPUT READ FROM STDIN ....... | unused part of the buffer            |
+    +-------------------------------+--------------------------------------+
+                      ^
+              |
+               currkey (next character to read)
 
-	<---------------------- BUFFER_SIZE (4096 bytes) ---------------------->
+    <---------------------- BUFFER_SIZE (4096 bytes) ---------------------->
 ```
 
 ### x86 assembly: implementing `KEY`
 
 ```
-	defcode "KEY",3,,KEY
-	call _KEY
-	push %eax		// push return value on stack
-	NEXT
+    defcode "KEY",3,,KEY
+    call _KEY
+    push %eax        // push return value on stack
+    NEXT
 _KEY:
-	mov (currkey),%ebx
-	cmp (bufftop),%ebx
-	jge 1f			// exhausted the input buffer?
-	xor %eax,%eax
-	mov (%ebx),%al		// get next key from input buffer
-	inc %ebx
-	mov %ebx,(currkey)	// increment currkey
-	ret
+    mov (currkey),%ebx
+    cmp (bufftop),%ebx
+    jge 1f            // exhausted the input buffer?
+    xor %eax,%eax
+    mov (%ebx),%al        // get next key from input buffer
+    inc %ebx
+    mov %ebx,(currkey)    // increment currkey
+    ret
 
-1:	// Out of input; use read(2) to fetch more input from stdin.
-	xor %ebx,%ebx		// 1st param: stdin
-	mov $buffer,%ecx	// 2nd param: buffer
-	mov %ecx,currkey
-	mov $BUFFER_SIZE,%edx	// 3rd param: max length
-	mov $__NR_read,%eax	// syscall: read
-	int $0x80
-	test %eax,%eax		// If %eax <= 0, then exit.
-	jbe 2f
-	addl %eax,%ecx		// buffer+%eax = bufftop
-	mov %ecx,bufftop
-	jmp _KEY
+1:    // Out of input; use read(2) to fetch more input from stdin.
+    xor %ebx,%ebx        // 1st param: stdin
+    mov $buffer,%ecx    // 2nd param: buffer
+    mov %ecx,currkey
+    mov $BUFFER_SIZE,%edx    // 3rd param: max length
+    mov $__NR_read,%eax    // syscall: read
+    int $0x80
+    test %eax,%eax        // If %eax <= 0, then exit.
+    jbe 2f
+    addl %eax,%ecx        // buffer+%eax = bufftop
+    mov %ecx,bufftop
+    jmp _KEY
 
-2:	// Error or end of input: exit the program.
-	xor %ebx,%ebx
-	mov $__NR_exit,%eax	// syscall: exit
-	int $0x80
+2:    // Error or end of input: exit the program.
+    xor %ebx,%ebx
+    mov $__NR_exit,%eax    // syscall: exit
+    int $0x80
 
-	.data
-	.align 4
+    .data
+    .align 4
 currkey:
-	.int buffer		// Current place in input buffer (next character to read).
+    .int buffer        // Current place in input buffer (next character to read).
 bufftop:
-	.int buffer		// Last valid data in input buffer + 1.
+    .int buffer        // Last valid data in input buffer + 1.
 ```
 
 ### x86 assembly: implementing `EMIT`
@@ -1730,26 +1731,26 @@ call.  No attempt  is made  to  buffer output,  but  it would  be a  good
 exercise to add it.
 
 ```
-	defcode "EMIT",4,,EMIT
-	pop %eax
-	call _EMIT
-	NEXT
+    defcode "EMIT",4,,EMIT
+    pop %eax
+    call _EMIT
+    NEXT
 _EMIT:
-	mov $1,%ebx		// 1st param: stdout
+    mov $1,%ebx        // 1st param: stdout
 
-	// write needs the address of the byte to write
-	mov %al,emit_scratch
-	mov $emit_scratch,%ecx	// 2nd param: address
+    // write needs the address of the byte to write
+    mov %al,emit_scratch
+    mov $emit_scratch,%ecx    // 2nd param: address
 
-	mov $1,%edx		// 3rd param: nbytes = 1
+    mov $1,%edx        // 3rd param: nbytes = 1
 
-	mov $__NR_write,%eax	// write syscall
-	int $0x80
-	ret
+    mov $__NR_write,%eax    // write syscall
+    int $0x80
+    ret
 
-	.data			// NB: easier to fit in the .data section
+    .data            // NB: easier to fit in the .data section
 emit_scratch:
-	.space 1		// scratch used by EMIT
+    .space 1        // scratch used by EMIT
 ```
 
 Back to input, `WORD` is a `FORTH` word which reads the next full word of
@@ -1779,13 +1780,13 @@ of all the above peculiarities and limitations.
 Note that when executing, you'll see:
 
 ```
-	WORD FOO
+    WORD FOO
 ```
 
 ... which puts "FOO" and length 3 on the stack, but when compiling:
 
 ```
-	: BAR WORD FOO ;
+    : BAR WORD FOO ;
 ```
 
 ... is an error (or at least  it doesn't do what you might expect). Later
@@ -1795,47 +1796,47 @@ why.
 ### x86 assembly: implementing `WORD`
 
 ```
-	defcode "WORD",4,,WORD
-	call _WORD
-	push %edi		// push base address
-	push %ecx		// push length
-	NEXT
+    defcode "WORD",4,,WORD
+    call _WORD
+    push %edi        // push base address
+    push %ecx        // push length
+    NEXT
 
 _WORD:
-	/* Search for first non-blank character.  Also skip \ comments. */
+    /* Search for first non-blank character.  Also skip \ comments. */
 1:
-	call _KEY		// get next key, returned in %eax
-	cmpb $'\\',%al		// start of a comment?
-	je 3f			// if so, skip the comment
-	cmpb $' ',%al
-	jbe 1b			// if so, keep looking
+    call _KEY        // get next key, returned in %eax
+    cmpb $'\\',%al        // start of a comment?
+    je 3f            // if so, skip the comment
+    cmpb $' ',%al
+    jbe 1b            // if so, keep looking
 
-	/* Search for the end of the word, storing chars as we go. */
-	mov $word_buffer,%edi	// pointer to return buffer
+    /* Search for the end of the word, storing chars as we go. */
+    mov $word_buffer,%edi    // pointer to return buffer
 2:
-	stosb			// add character to return buffer
-	call _KEY		// get next key, returned in %al
-	cmpb $' ',%al		// is blank?
-	ja 2b			// if not, keep looping
+    stosb            // add character to return buffer
+    call _KEY        // get next key, returned in %al
+    cmpb $' ',%al        // is blank?
+    ja 2b            // if not, keep looping
 
-	/* Return the word (well, the static buffer) and length. */
-	sub $word_buffer,%edi
-	mov %edi,%ecx		// return length of the word
-	mov $word_buffer,%edi	// return address of the word
-	ret
+    /* Return the word (well, the static buffer) and length. */
+    sub $word_buffer,%edi
+    mov %edi,%ecx        // return length of the word
+    mov $word_buffer,%edi    // return address of the word
+    ret
 
-	/* Code to skip \ comments to end of the current line. */
+    /* Code to skip \ comments to end of the current line. */
 3:
-	call _KEY
-	cmpb $'\n',%al		// end of line yet?
-	jne 3b
-	jmp 1b
+    call _KEY
+    cmpb $'\n',%al        // end of line yet?
+    jne 3b
+    jmp 1b
 
-	.data			// NB: easier to fit in the .data section
-	// A static buffer where WORD returns.  Subsequent calls
-	// overwrite this buffer.  Maximum word length is 32 chars.
+    .data            // NB: easier to fit in the .data section
+    // A static buffer where WORD returns.  Subsequent calls
+    // overwrite this buffer.  Maximum word length is 32 chars.
 word_buffer:
-	.space 32
+    .space 32
 ```
 
 As well as reading in words we'll need to read in numbers and for that we
@@ -1859,66 +1860,66 @@ stack is the parsed number or a partial value if there was an error.
 ### x86 assembly: implementing `NUMBER` routine
 
 ```
-	defcode "NUMBER",6,,NUMBER
-	pop %ecx		// length of string
-	pop %edi		// start address of string
-	call _NUMBER
-	push %eax		// parsed number
-	push %ecx		// number of unparsed characters (0 = no error)
-	NEXT
+    defcode "NUMBER",6,,NUMBER
+    pop %ecx        // length of string
+    pop %edi        // start address of string
+    call _NUMBER
+    push %eax        // parsed number
+    push %ecx        // number of unparsed characters (0 = no error)
+    NEXT
 
 _NUMBER:
-	xor %eax,%eax
-	xor %ebx,%ebx
+    xor %eax,%eax
+    xor %ebx,%ebx
 
-	test %ecx,%ecx		// trying to parse a zero-length string is an error, but will return 0.
-	jz 5f
+    test %ecx,%ecx        // trying to parse a zero-length string is an error, but will return 0.
+    jz 5f
 
-	movl var_BASE,%edx	// get BASE (in %dl)
+    movl var_BASE,%edx    // get BASE (in %dl)
 
-	// Check if first character is '-'.
-	movb (%edi),%bl		// %bl = first character in string
-	inc %edi
-	push %eax		// push 0 on stack
-	cmpb $'-',%bl		// negative number?
-	jnz 2f
-	pop %eax
-	push %ebx		// push <> 0 on stack, indicating negative
-	dec %ecx
-	jnz 1f
-	pop %ebx		// error: string is only '-'.
-	movl $1,%ecx
-	ret
+    // Check if first character is '-'.
+    movb (%edi),%bl        // %bl = first character in string
+    inc %edi
+    push %eax        // push 0 on stack
+    cmpb $'-',%bl        // negative number?
+    jnz 2f
+    pop %eax
+    push %ebx        // push <> 0 on stack, indicating negative
+    dec %ecx
+    jnz 1f
+    pop %ebx        // error: string is only '-'.
+    movl $1,%ecx
+    ret
 
-	// Loop reading digits.
-1:	imull %edx,%eax		// %eax *= BASE
-	movb (%edi),%bl		// %bl = next character in string
-	inc %edi
+    // Loop reading digits.
+1:    imull %edx,%eax        // %eax *= BASE
+    movb (%edi),%bl        // %bl = next character in string
+    inc %edi
 
-	// Convert 0-9, A-Z to a number 0-35.
-2:	subb $'0',%bl		// < '0'?
-	jb 4f
-	cmp $10,%bl		// <= '9'?
-	jb 3f
-	subb $17,%bl		// < 'A'? (17 is 'A'-'0')
-	jb 4f
-	addb $10,%bl
+    // Convert 0-9, A-Z to a number 0-35.
+2:    subb $'0',%bl        // < '0'?
+    jb 4f
+    cmp $10,%bl        // <= '9'?
+    jb 3f
+    subb $17,%bl        // < 'A'? (17 is 'A'-'0')
+    jb 4f
+    addb $10,%bl
 
-3:	cmp %dl,%bl		// >= BASE?
-	jge 4f
+3:    cmp %dl,%bl        // >= BASE?
+    jge 4f
 
-	// OK, so add it to %eax and loop.
-	add %ebx,%eax
-	dec %ecx
-	jnz 1b
+    // OK, so add it to %eax and loop.
+    add %ebx,%eax
+    dec %ecx
+    jnz 1b
 
-	// Negate the result if first character was '-' (saved on the stack).
-4:	pop %ebx
-	test %ebx,%ebx
-	jz 5f
-	neg %eax
+    // Negate the result if first character was '-' (saved on the stack).
+4:    pop %ebx
+    test %ebx,%ebx
+    jz 5f
+    neg %eax
 
-5:	ret
+5:    ret
 ```
 
 ## DICTIONARY LOOK UPS
@@ -1936,823 +1937,855 @@ returns the following pointer:
 
 ```
     pointer to this
-	|
-	|
-	V
-	+---------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
-	| LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      | DUP        | +          | EXIT       |
-	+---------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
+    |
+    |
+    V
+    +---------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
+    | LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      | DUP        | +          | EXIT       |
+    +---------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
 ```
 
-	See also >CFA and >DFA.
+See also `>CFA` and `>DFA`.
 
-	FIND doesn't find dictionary entries which are flagged as HIDDEN.  See below for why.
-*/
+`FIND` doesn't find dictionary entries which are flagged as `HIDDEN`. See
+below for why.
 
-	defcode "FIND",4,,FIND
-	pop %ecx		// %ecx = length
-	pop %edi		// %edi = address
-	call _FIND
-	push %eax		// %eax = address of dictionary entry (or NULL)
-	NEXT
+### x86 assembly: implementing `FIND`
+
+    defcode "FIND",4,,FIND
+    pop %ecx        // %ecx = length
+    pop %edi        // %edi = address
+    call _FIND
+    push %eax        // %eax = address of dictionary entry (or NULL)
+    NEXT
 
 _FIND:
-	push %esi		// Save %esi so we can use it in string comparison.
+    push %esi        // Save %esi so we can use it in string comparison.
 
-	// Now we start searching backwards through the dictionary for this word.
-	mov var_LATEST,%edx	// LATEST points to name header of the latest word in the dictionary
-1:	test %edx,%edx		// NULL pointer?  (end of the linked list)
-	je 4f
+    // Now we start  searching backwards through the  dictionary for this
+    // word.
 
-	// Compare the length expected and the length of the word.
-	// Note that if the F_HIDDEN flag is set on the word, then by a bit of trickery
-	// this won't pick the word (the length will appear to be wrong).
-	xor %eax,%eax
-	movb 4(%edx),%al	// %al = flags+length field
-	andb $(F_HIDDEN|F_LENMASK),%al // %al = name length
-	cmpb %cl,%al		// Length is the same?
-	jne 2f
+    // LATEST points to name header of the latest word in the dictionary
 
-	// Compare the strings in detail.
-	push %ecx		// Save the length
-	push %edi		// Save the address (repe cmpsb will move this pointer)
-	lea 5(%edx),%esi	// Dictionary string we are checking against.
-	repe cmpsb		// Compare the strings.
-	pop %edi
-	pop %ecx
-	jne 2f			// Not the same.
+    mov var_LATEST,%edx
 
-	// The strings are the same - return the header pointer in %eax
-	pop %esi
-	mov %edx,%eax
-	ret
+1:    test %edx,%edx        // NULL pointer?  (end of the linked list)
+    je 4f
 
-2:	mov (%edx),%edx		// Move back through the link field to the previous word
-	jmp 1b			// .. and loop.
+    // Compare the length expected and the  length of the word. Note that
+    // if the F_HIDDEN flag is set on the word, then by a bit of trickery
+    // this won't pick the word (the length will appear to be wrong).
+    xor %eax,%eax
+    movb 4(%edx),%al    // %al = flags+length field
+    andb $(F_HIDDEN|F_LENMASK),%al // %al = name length
+    cmpb %cl,%al        // Length is the same?
+    jne 2f
 
-4:	// Not found.
-	pop %esi
-	xor %eax,%eax		// Return zero to indicate not found.
-	ret
+    // Compare the strings in detail.
+    push %ecx        // Save the length
+    push %edi        // Save the address (repe cmpsb will move this pointer)
+    lea 5(%edx),%esi    // Dictionary string we are checking against.
+    repe cmpsb        // Compare the strings.
+    pop %edi
+    pop %ecx
+    jne 2f            // Not the same.
 
-/*
-	FIND returns the dictionary pointer, but when compiling we need the codeword pointer (recall
-	that FORTH definitions are compiled into lists of codeword pointers).  The standard FORTH
-	word >CFA turns a dictionary pointer into a codeword pointer.
+    // The strings are the same - return the header pointer in %eax
+    pop %esi
+    mov %edx,%eax
+    ret
 
-	The example below shows the result of:
+2:    mov (%edx),%edx        // Move back through the link field to the previous word
+    jmp 1b            // .. and loop.
 
-		WORD DOUBLE FIND >CFA
+4:    // Not found.
+    pop %esi
+    xor %eax,%eax        // Return zero to indicate not found.
+    ret
+```
 
-	FIND returns a pointer to this
-	|				>CFA converts it to a pointer to this
-	|					   |
-	V					   V
-	+---------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
-	| LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      | DUP        | +          | EXIT       |
-	+---------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
-						   codeword
+`FIND` returns  the dictionary  pointer, but when  compiling we  need the
+codeword  pointer  (recall that  `FORTH`  definitions  are compiled  into
+lists of  codeword pointers).  The standard `FORTH`  word `>CFA`  turns a
+dictionary pointer into a codeword pointer.
 
-	Notes:
+The example below shows the result of:
 
-	Because names vary in length, this isn't just a simple increment.
+```
+    WORD DOUBLE FIND >CFA
+```
 
-	In this FORTH you cannot easily turn a codeword pointer back into a dictionary entry pointer, but
-	that is not true in most FORTH implementations where they store a back pointer in the definition
-	(with an obvious memory/complexity cost).  The reason they do this is that it is useful to be
-	able to go backwards (codeword -> dictionary entry) in order to decompile FORTH definitions
-	quickly.
+```
+    FIND returns a pointer to this
+    |                >CFA converts it to a pointer to this
+    |                       |
+    V                       V
+    +---------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
+    | LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      | DUP        | +          | EXIT       |
+    +---------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
+                           codeword
+```
 
-	What does CFA stand for?  My best guess is "Code Field Address".
-*/
+Notes:
 
-	defcode ">CFA",4,,TCFA
-	pop %edi
-	call _TCFA
-	push %edi
-	NEXT
+Because names vary in length, this isn't just a simple increment.
+
+In  this `FORTH`  you cannot  easily turn  a codeword  pointer back  into
+a  dictionary  entry pointer,  but  that  is  not  true in  most  `FORTH`
+implementations where they  store a back pointer in  the definition (with
+an obvious memory/complexity cost). The reason they do this is that it is
+useful to be able to go backwards (codeword -> dictionary entry) in order
+to decompile `FORTH` definitions quickly.
+
+What does **CFA** stand for?  My best guess is "*Code Field Address*".
+
+### x86 assembly: implementing `>CFA`
+
+```
+    defcode ">CFA",4,,TCFA
+    pop %edi
+    call _TCFA
+    push %edi
+    NEXT
 _TCFA:
-	xor %eax,%eax
-	add $4,%edi		// Skip link pointer.
-	movb (%edi),%al		// Load flags+len into %al.
-	inc %edi		// Skip flags+len byte.
-	andb $F_LENMASK,%al	// Just the length, not the flags.
-	add %eax,%edi		// Skip the name.
-	addl $3,%edi		// The codeword is 4-byte aligned.
-	andl $~3,%edi
-	ret
+    xor %eax,%eax
+    add $4,%edi         // Skip link pointer.
+    movb (%edi),%al     // Load flags+len into %al.
+    inc %edi            // Skip flags+len byte.
+    andb $F_LENMASK,%al // Just the length, not the flags.
+    add %eax,%edi       // Skip the name.
+    addl $3,%edi        // The codeword is 4-byte aligned.
+    andl $~3,%edi
+    ret
+```
 
-/*
-	Related to >CFA is >DFA which takes a dictionary entry address as returned by FIND and
-	returns a pointer to the first data field.
+Related to  `>CFA` is `>DFA`  which takes  a dictionary entry  address as
+returned by `FIND` and returns a pointer to the first data field.
 
-	FIND returns a pointer to this
-	|				>CFA converts it to a pointer to this
-	|					   |
-	|					   |	>DFA converts it to a pointer to this
-	|					   |		 |
-	V					   V		 V
-	+---------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
-	| LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      | DUP        | +          | EXIT       |
-	+---------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
-						   codeword
+```
+    FIND returns a pointer to this
+    |                >CFA converts it to a pointer to this
+    |                       |
+    |                       |    >DFA converts it to a pointer to this
+    |                       |         |
+    V                       V         V
+    +---------+---+---+---+---+---+---+---+---+-------+-----+---+------+
+    | LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL | DUP | + | EXIT |
+    +---------+---+---+---+---+---+---+---+---+-------+-----+---+------+
+                           codeword
+```
 
-	(Note to those following the source of FIG-FORTH / ciforth: My >DFA definition is
-	different from theirs, because they have an extra indirection).
+(Note  to those  following  the  source of  `FIG-FORTH`  / `ciforth`:  My
+`>DFA` definition  is different from  theirs, because they have  an extra
+indirection).
 
-	You can see that >DFA is easily defined in FORTH just by adding 4 to the result of >CFA.
-*/
+You can see that  `>DFA` is easily defined in `FORTH`  just by adding `4`
+to the result of `>CFA`.
 
-	defword ">DFA",4,,TDFA
-	.int TCFA		// >CFA		(get code field address)
-	.int INCR4		// 4+		(add 4 to it to get to next word)
-	.int EXIT		// EXIT		(return from FORTH word)
+### x86 assembly: implementing `>DFA`
 
-/*
-	COMPILING ----------------------------------------------------------------------
+```
+    defword ">DFA",4,,TDFA
+    .int TCFA   // >CFA (get code field address)
+    .int INCR4  // 4+   (add 4 to it to get to next word)
+    .int EXIT   // EXIT (return from FORTH word)
+```
 
-	Now we'll talk about how FORTH compiles words.  Recall that a word definition looks like this:
+## COMPILING
 
-		: DOUBLE DUP + ;
+Now  we'll talk  about how  `FORTH` compiles  words. Recall  that a  word
+definition looks like this:
 
-	and we have to turn this into:
+```
+    : DOUBLE DUP + ;
+```
 
-	  pointer to previous word
-	   ^
-	   |
-	+--|------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
-	| LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      | DUP        | +          | EXIT       |
-	+---------+---+---+---+---+---+---+---+---+------------+--|---------+------------+------------+
-           ^       len                         pad  codeword      |
-	   |							  V
-	  LATEST points here				points to codeword of DUP
+... and we have to turn this into:
 
-	There are several problems to solve.  Where to put the new word?  How do we read words?  How
-	do we define the words : (COLON) and ; (SEMICOLON)?
+```
+      pointer to previous word
+       ^
+       |
+    +--|---+---+---+---+---+---+---+---+---+-------+-----+---+------+
+    | LINK | 6 | D | O | U | B | L | E | 0 | DOCOL | DUP | + | EXIT |
+    +------+---+---+---+---+---+---+---+---+-------+--|--+---+------+
+             ^ len                      pad  codeword |
+       |                              V
+      LATEST points here                points to codeword of DUP
+```
 
-	FORTH solves this rather elegantly and as you might expect in a very low-level way which
-	allows you to change how the compiler works on your own code.
+There are several problems to solve. Where to put the new word? How do we
+read words? How do we define the words `: (COLON) and ; (SEMICOLON)`?
 
-	FORTH has an INTERPRET function (a true interpreter this time, not DOCOL) which runs in a
-	loop, reading words (using WORD), looking them up (using FIND), turning them into codeword
-	pointers (using >CFA) and deciding what to do with them.
+`FORTH` solves  this rather elegantly and  as you might expect  in a very
+low-level way which  allows you to change how the  compiler works on your
+own code.
 
-	What it does depends on the mode of the interpreter (in variable STATE).
+`FORTH` has an **INTERPRET** function  (a true interpreter this time, not
+`DOCOL`) which runs in a loop, reading words (using `WORD`), looking them
+up (using `FIND`), turning them into codeword pointers (using `>CFA`) and
+deciding what to do with them.
 
-	When STATE is zero, the interpreter just runs each word as it looks them up.  This is known as
-	immediate mode.
+What  it  does depends  on  the  mode  of  the interpreter  (in  variable
+`STATE`).
 
-	The interesting stuff happens when STATE is non-zero -- compiling mode.  In this mode the
-	interpreter appends the codeword pointer to user memory (the HERE variable points to the next
-	free byte of user memory -- see DATA SEGMENT section below).
+When `STATE` is **zero**, the interpreter just runs each word as it looks
+them up. This is known as **immediate mode**.
 
-	So you may be able to see how we could define : (COLON).  The general plan is:
+The interesting stuff happens when `STATE` is **non-zero** -- **compiling
+mode**. In this mode the interpreter appends the codeword pointer to user
+memory (the `HERE`  variable points to the next free  byte of user memory
+-- see [DATA SEGMENT](#DATA-SEGMENT) section below).
 
-	(1) Use WORD to read the name of the function being defined.
+So  you may  be able  to see  how we  could define  `:` (**COLON**).  The
+general plan is:
 
-	(2) Construct the dictionary entry -- just the header part -- in user memory:
+  * Use `WORD` to read the name of the function being defined.
+  * Construct the dictionary entry -- just the header part -- in user memory:
 
-    pointer to previous word (from LATEST)			+-- Afterwards, HERE points here, where
-	   ^							|   the interpreter will start appending
-	   |							V   codewords.
-	+--|------+---+---+---+---+---+---+---+---+------------+
-	| LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      |
-	+---------+---+---+---+---+---+---+---+---+------------+
+```
+    pointer to previous word (from LATEST)            +-- Afterwards, HERE points here, where
+       ^                            |   the interpreter will start appending
+       |                            V   codewords.
+    +--|------+---+---+---+---+---+---+---+---+------------+
+    | LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      |
+    +---------+---+---+---+---+---+---+---+---+------------+
+                   len                         pad  codeword
+```
+
+    (3) Set LATEST to point to the newly defined word, ...
+
+    (4) .. and most importantly leave HERE pointing just after the new codeword.  This is where
+        the interpreter will append codewords.
+
+    (5) Set STATE to 1.  This goes into compile mode so the interpreter starts appending codewords to
+        our partially-formed header.
+
+    After : has run, our input is here:
+
+    : DOUBLE DUP + ;
+             ^
+         |
+        Next byte returned by KEY will be the 'D' character of DUP
+
+    so the interpreter (now it's in compile mode, so I guess it's really the compiler) reads "DUP",
+    looks it up in the dictionary, gets its codeword pointer, and appends it:
+
+                                         +-- HERE updated to point here.
+                                         |
+                                         V
+    +---------+---+---+---+---+---+---+---+---+------------+------------+
+    | LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      | DUP        |
+    +---------+---+---+---+---+---+---+---+---+------------+------------+
                    len                         pad  codeword
 
-	(3) Set LATEST to point to the newly defined word, ...
+    Next we read +, get the codeword pointer, and append it:
 
-	(4) .. and most importantly leave HERE pointing just after the new codeword.  This is where
-	    the interpreter will append codewords.
-
-	(5) Set STATE to 1.  This goes into compile mode so the interpreter starts appending codewords to
-	    our partially-formed header.
-
-	After : has run, our input is here:
-
-	: DOUBLE DUP + ;
-	         ^
-		 |
-		Next byte returned by KEY will be the 'D' character of DUP
-
-	so the interpreter (now it's in compile mode, so I guess it's really the compiler) reads "DUP",
-	looks it up in the dictionary, gets its codeword pointer, and appends it:
-
-									     +-- HERE updated to point here.
-									     |
-									     V
-	+---------+---+---+---+---+---+---+---+---+------------+------------+
-	| LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      | DUP        |
-	+---------+---+---+---+---+---+---+---+---+------------+------------+
+                                              +-- HERE updated to point here.
+                                              |
+                                              V
+    +---------+---+---+---+---+---+---+---+---+------------+------------+------------+
+    | LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      | DUP        | +          |
+    +---------+---+---+---+---+---+---+---+---+------------+------------+------------+
                    len                         pad  codeword
 
-	Next we read +, get the codeword pointer, and append it:
+    The issue is what happens next.  Obviously what we _don't_ want to happen is that we
+    read ";" and compile it and go on compiling everything afterwards.
 
-											  +-- HERE updated to point here.
-											  |
-											  V
-	+---------+---+---+---+---+---+---+---+---+------------+------------+------------+
-	| LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      | DUP        | +          |
-	+---------+---+---+---+---+---+---+---+---+------------+------------+------------+
-                   len                         pad  codeword
+    At this point, FORTH uses a trick.  Remember the length byte in the dictionary definition
+    isn't just a plain length byte, but can also contain flags.  One flag is called the
+    IMMEDIATE flag (F_IMMED in this code).  If a word in the dictionary is flagged as
+    IMMEDIATE then the interpreter runs it immediately _even if it's in compile mode_.
 
-	The issue is what happens next.  Obviously what we _don't_ want to happen is that we
-	read ";" and compile it and go on compiling everything afterwards.
+    This is how the word ; (SEMICOLON) works -- as a word flagged in the dictionary as IMMEDIATE.
 
-	At this point, FORTH uses a trick.  Remember the length byte in the dictionary definition
-	isn't just a plain length byte, but can also contain flags.  One flag is called the
-	IMMEDIATE flag (F_IMMED in this code).  If a word in the dictionary is flagged as
-	IMMEDIATE then the interpreter runs it immediately _even if it's in compile mode_.
+    And all it does is append the codeword for EXIT on to the current definition and switch
+    back to immediate mode (set STATE back to 0).  Shortly we'll see the actual definition
+    of ; and we'll see that it's really a very simple definition, declared IMMEDIATE.
 
-	This is how the word ; (SEMICOLON) works -- as a word flagged in the dictionary as IMMEDIATE.
+    After the interpreter reads ; and executes it 'immediately', we get this:
 
-	And all it does is append the codeword for EXIT on to the current definition and switch
-	back to immediate mode (set STATE back to 0).  Shortly we'll see the actual definition
-	of ; and we'll see that it's really a very simple definition, declared IMMEDIATE.
+    +---------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
+    | LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      | DUP        | +          | EXIT       |
+    +---------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
+                   len                         pad  codeword                           ^
+                                                       |
+                                                      HERE
+    STATE is set to 0.
 
-	After the interpreter reads ; and executes it 'immediately', we get this:
+    And that's it, job done, our new definition is compiled, and we're back in immediate mode
+    just reading and executing words, perhaps including a call to test our new word DOUBLE.
 
-	+---------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
-	| LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      | DUP        | +          | EXIT       |
-	+---------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
-                   len                         pad  codeword					       ^
-												       |
-												      HERE
-	STATE is set to 0.
+    The only last wrinkle in this is that while our word was being compiled, it was in a
+    half-finished state.  We certainly wouldn't want DOUBLE to be called somehow during
+    this time.  There are several ways to stop this from happening, but in FORTH what we
+    do is flag the word with the HIDDEN flag (F_HIDDEN in this code) just while it is
+    being compiled.  This prevents FIND from finding it, and thus in theory stops any
+    chance of it being called.
 
-	And that's it, job done, our new definition is compiled, and we're back in immediate mode
-	just reading and executing words, perhaps including a call to test our new word DOUBLE.
+    The above explains how compiling, : (COLON) and ; (SEMICOLON) works and in a moment I'm
+    going to define them.  The : (COLON) function can be made a little bit more general by writing
+    it in two parts.  The first part, called CREATE, makes just the header:
 
-	The only last wrinkle in this is that while our word was being compiled, it was in a
-	half-finished state.  We certainly wouldn't want DOUBLE to be called somehow during
-	this time.  There are several ways to stop this from happening, but in FORTH what we
-	do is flag the word with the HIDDEN flag (F_HIDDEN in this code) just while it is
-	being compiled.  This prevents FIND from finding it, and thus in theory stops any
-	chance of it being called.
-
-	The above explains how compiling, : (COLON) and ; (SEMICOLON) works and in a moment I'm
-	going to define them.  The : (COLON) function can be made a little bit more general by writing
-	it in two parts.  The first part, called CREATE, makes just the header:
-
-						   +-- Afterwards, HERE points here.
-						   |
-						   V
-	+---------+---+---+---+---+---+---+---+---+
-	| LINK    | 6 | D | O | U | B | L | E | 0 |
-	+---------+---+---+---+---+---+---+---+---+
+                           +-- Afterwards, HERE points here.
+                           |
+                           V
+    +---------+---+---+---+---+---+---+---+---+
+    | LINK    | 6 | D | O | U | B | L | E | 0 |
+    +---------+---+---+---+---+---+---+---+---+
                    len                         pad
 
-	and the second part, the actual definition of : (COLON), calls CREATE and appends the
-	DOCOL codeword, so leaving:
+    and the second part, the actual definition of : (COLON), calls CREATE and appends the
+    DOCOL codeword, so leaving:
 
-								+-- Afterwards, HERE points here.
-								|
-								V
-	+---------+---+---+---+---+---+---+---+---+------------+
-	| LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      |
-	+---------+---+---+---+---+---+---+---+---+------------+
+                                +-- Afterwards, HERE points here.
+                                |
+                                V
+    +---------+---+---+---+---+---+---+---+---+------------+
+    | LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      |
+    +---------+---+---+---+---+---+---+---+---+------------+
                    len                         pad  codeword
 
-	CREATE is a standard FORTH word and the advantage of this split is that we can reuse it to
-	create other types of words (not just ones which contain code, but words which contain variables,
-	constants and other data).
+    CREATE is a standard FORTH word and the advantage of this split is that we can reuse it to
+    create other types of words (not just ones which contain code, but words which contain variables,
+    constants and other data).
 */
 
-	defcode "CREATE",6,,CREATE
+    defcode "CREATE",6,,CREATE
 
-	// Get the name length and address.
-	pop %ecx		// %ecx = length
-	pop %ebx		// %ebx = address of name
+    // Get the name length and address.
+    pop %ecx        // %ecx = length
+    pop %ebx        // %ebx = address of name
 
-	// Link pointer.
-	movl var_HERE,%edi	// %edi is the address of the header
-	movl var_LATEST,%eax	// Get link pointer
-	stosl			// and store it in the header.
+    // Link pointer.
+    movl var_HERE,%edi    // %edi is the address of the header
+    movl var_LATEST,%eax    // Get link pointer
+    stosl            // and store it in the header.
 
-	// Length byte and the word itself.
-	mov %cl,%al		// Get the length.
-	stosb			// Store the length/flags byte.
-	push %esi
-	mov %ebx,%esi		// %esi = word
-	rep movsb		// Copy the word
-	pop %esi
-	addl $3,%edi		// Align to next 4 byte boundary.
-	andl $~3,%edi
+    // Length byte and the word itself.
+    mov %cl,%al        // Get the length.
+    stosb            // Store the length/flags byte.
+    push %esi
+    mov %ebx,%esi        // %esi = word
+    rep movsb        // Copy the word
+    pop %esi
+    addl $3,%edi        // Align to next 4 byte boundary.
+    andl $~3,%edi
 
-	// Update LATEST and HERE.
-	movl var_HERE,%eax
-	movl %eax,var_LATEST
-	movl %edi,var_HERE
-	NEXT
+    // Update LATEST and HERE.
+    movl var_HERE,%eax
+    movl %eax,var_LATEST
+    movl %edi,var_HERE
+    NEXT
 
 /*
-	Because I want to define : (COLON) in FORTH, not assembler, we need a few more FORTH words
-	to use.
+    Because I want to define : (COLON) in FORTH, not assembler, we need a few more FORTH words
+    to use.
 
-	The first is , (COMMA) which is a standard FORTH word which appends a 32 bit integer to the user
-	memory pointed to by HERE, and adds 4 to HERE.  So the action of , (COMMA) is:
+    The first is , (COMMA) which is a standard FORTH word which appends a 32 bit integer to the user
+    memory pointed to by HERE, and adds 4 to HERE.  So the action of , (COMMA) is:
 
-							previous value of HERE
-								 |
-								 V
-	+---------+---+---+---+---+---+---+---+---+-- - - - - --+------------+
-	| LINK    | 6 | D | O | U | B | L | E | 0 |             |  <data>    |
-	+---------+---+---+---+---+---+---+---+---+-- - - - - --+------------+
-                   len                         pad		              ^
-									      |
-									new value of HERE
+                            previous value of HERE
+                                 |
+                                 V
+    +---------+---+---+---+---+---+---+---+---+-- - - - - --+------------+
+    | LINK    | 6 | D | O | U | B | L | E | 0 |             |  <data>    |
+    +---------+---+---+---+---+---+---+---+---+-- - - - - --+------------+
+                   len                         pad                      ^
+                                          |
+                                    new value of HERE
 
-	and <data> is whatever 32 bit integer was at the top of the stack.
+    and <data> is whatever 32 bit integer was at the top of the stack.
 
-	, (COMMA) is quite a fundamental operation when compiling.  It is used to append codewords
-	to the current word that is being compiled.
+    , (COMMA) is quite a fundamental operation when compiling.  It is used to append codewords
+    to the current word that is being compiled.
 */
 
-	defcode ",",1,,COMMA
-	pop %eax		// Code pointer to store.
-	call _COMMA
-	NEXT
+    defcode ",",1,,COMMA
+    pop %eax        // Code pointer to store.
+    call _COMMA
+    NEXT
 _COMMA:
-	movl var_HERE,%edi	// HERE
-	stosl			// Store it.
-	movl %edi,var_HERE	// Update HERE (incremented)
-	ret
+    movl var_HERE,%edi    // HERE
+    stosl            // Store it.
+    movl %edi,var_HERE    // Update HERE (incremented)
+    ret
 
 /*
-	Our definitions of : (COLON) and ; (SEMICOLON) will need to switch to and from compile mode.
+    Our definitions of : (COLON) and ; (SEMICOLON) will need to switch to and from compile mode.
 
-	Immediate mode vs. compile mode is stored in the global variable STATE, and by updating this
-	variable we can switch between the two modes.
+    Immediate mode vs. compile mode is stored in the global variable STATE, and by updating this
+    variable we can switch between the two modes.
 
-	For various reasons which may become apparent later, FORTH defines two standard words called
-	[ and ] (LBRAC and RBRAC) which switch between modes:
+    For various reasons which may become apparent later, FORTH defines two standard words called
+    [ and ] (LBRAC and RBRAC) which switch between modes:
 
-	Word	Assembler	Action		Effect
-	[	LBRAC		STATE := 0	Switch to immediate mode.
-	]	RBRAC		STATE := 1	Switch to compile mode.
+    Word    Assembler    Action        Effect
+    [    LBRAC        STATE := 0    Switch to immediate mode.
+    ]    RBRAC        STATE := 1    Switch to compile mode.
 
-	[ (LBRAC) is an IMMEDIATE word.  The reason is as follows: If we are in compile mode and the
-	interpreter saw [ then it would compile it rather than running it.  We would never be able to
-	switch back to immediate mode!  So we flag the word as IMMEDIATE so that even in compile mode
-	the word runs immediately, switching us back to immediate mode.
+    [ (LBRAC) is an IMMEDIATE word.  The reason is as follows: If we are in compile mode and the
+    interpreter saw [ then it would compile it rather than running it.  We would never be able to
+    switch back to immediate mode!  So we flag the word as IMMEDIATE so that even in compile mode
+    the word runs immediately, switching us back to immediate mode.
 */
 
-	defcode "[",1,F_IMMED,LBRAC
-	xor %eax,%eax
-	movl %eax,var_STATE	// Set STATE to 0.
-	NEXT
+    defcode "[",1,F_IMMED,LBRAC
+    xor %eax,%eax
+    movl %eax,var_STATE    // Set STATE to 0.
+    NEXT
 
-	defcode "]",1,,RBRAC
-	movl $1,var_STATE	// Set STATE to 1.
-	NEXT
+    defcode "]",1,,RBRAC
+    movl $1,var_STATE    // Set STATE to 1.
+    NEXT
 
 /*
-	Now we can define : (COLON) using CREATE.  It just calls CREATE, appends DOCOL (the codeword), sets
-	the word HIDDEN and goes into compile mode.
+    Now we can define : (COLON) using CREATE.  It just calls CREATE, appends DOCOL (the codeword), sets
+    the word HIDDEN and goes into compile mode.
 */
 
-	defword ":",1,,COLON
-	.int WORD		// Get the name of the new word
-	.int CREATE		// CREATE the dictionary entry / header
-	.int LIT, DOCOL, COMMA	// Append DOCOL  (the codeword).
-	.int LATEST, FETCH, HIDDEN // Make the word hidden (see below for definition).
-	.int RBRAC		// Go into compile mode.
-	.int EXIT		// Return from the function.
+    defword ":",1,,COLON
+    .int WORD        // Get the name of the new word
+    .int CREATE        // CREATE the dictionary entry / header
+    .int LIT, DOCOL, COMMA    // Append DOCOL  (the codeword).
+    .int LATEST, FETCH, HIDDEN // Make the word hidden (see below for definition).
+    .int RBRAC        // Go into compile mode.
+    .int EXIT        // Return from the function.
 
 /*
-	; (SEMICOLON) is also elegantly simple.  Notice the F_IMMED flag.
+    ; (SEMICOLON) is also elegantly simple.  Notice the F_IMMED flag.
 */
 
-	defword ";",1,F_IMMED,SEMICOLON
-	.int LIT, EXIT, COMMA	// Append EXIT (so the word will return).
-	.int LATEST, FETCH, HIDDEN // Toggle hidden flag -- unhide the word (see below for definition).
-	.int LBRAC		// Go back to IMMEDIATE mode.
-	.int EXIT		// Return from the function.
+    defword ";",1,F_IMMED,SEMICOLON
+    .int LIT, EXIT, COMMA    // Append EXIT (so the word will return).
+    .int LATEST, FETCH, HIDDEN // Toggle hidden flag -- unhide the word (see below for definition).
+    .int LBRAC        // Go back to IMMEDIATE mode.
+    .int EXIT        // Return from the function.
 
 /*
-	EXTENDING THE COMPILER ----------------------------------------------------------------------
+    EXTENDING THE COMPILER ----------------------------------------------------------------------
 
-	Words flagged with IMMEDIATE (F_IMMED) aren't just for the FORTH compiler to use.  You can define
-	your own IMMEDIATE words too, and this is a crucial aspect when extending basic FORTH, because
-	it allows you in effect to extend the compiler itself.  Does gcc let you do that?
+    Words flagged with IMMEDIATE (F_IMMED) aren't just for the FORTH compiler to use.  You can define
+    your own IMMEDIATE words too, and this is a crucial aspect when extending basic FORTH, because
+    it allows you in effect to extend the compiler itself.  Does gcc let you do that?
 
-	Standard FORTH words like IF, WHILE, ." and so on are all written as extensions to the basic
-	compiler, and are all IMMEDIATE words.
+    Standard FORTH words like IF, WHILE, ." and so on are all written as extensions to the basic
+    compiler, and are all IMMEDIATE words.
 
-	The IMMEDIATE word toggles the F_IMMED (IMMEDIATE flag) on the most recently defined word,
-	or on the current word if you call it in the middle of a definition.
+    The IMMEDIATE word toggles the F_IMMED (IMMEDIATE flag) on the most recently defined word,
+    or on the current word if you call it in the middle of a definition.
 
-	Typical usage is:
+    Typical usage is:
 
-	: MYIMMEDWORD IMMEDIATE
-		...definition...
-	;
+    : MYIMMEDWORD IMMEDIATE
+        ...definition...
+    ;
 
-	but some FORTH programmers write this instead:
+    but some FORTH programmers write this instead:
 
-	: MYIMMEDWORD
-		...definition...
-	; IMMEDIATE
+    : MYIMMEDWORD
+        ...definition...
+    ; IMMEDIATE
 
-	The two usages are equivalent, to a first approximation.
+    The two usages are equivalent, to a first approximation.
 */
 
-	defcode "IMMEDIATE",9,F_IMMED,IMMEDIATE
-	movl var_LATEST,%edi	// LATEST word.
-	addl $4,%edi		// Point to name/flags byte.
-	xorb $F_IMMED,(%edi)	// Toggle the IMMED bit.
-	NEXT
+    defcode "IMMEDIATE",9,F_IMMED,IMMEDIATE
+    movl var_LATEST,%edi    // LATEST word.
+    addl $4,%edi        // Point to name/flags byte.
+    xorb $F_IMMED,(%edi)    // Toggle the IMMED bit.
+    NEXT
 
 /*
-	'addr HIDDEN' toggles the hidden flag (F_HIDDEN) of the word defined at addr.  To hide the
-	most recently defined word (used above in : and ; definitions) you would do:
+    'addr HIDDEN' toggles the hidden flag (F_HIDDEN) of the word defined at addr.  To hide the
+    most recently defined word (used above in : and ; definitions) you would do:
 
-		LATEST @ HIDDEN
+        LATEST @ HIDDEN
 
-	'HIDE word' toggles the flag on a named 'word'.
+    'HIDE word' toggles the flag on a named 'word'.
 
-	Setting this flag stops the word from being found by FIND, and so can be used to make 'private'
-	words.  For example, to break up a large word into smaller parts you might do:
+    Setting this flag stops the word from being found by FIND, and so can be used to make 'private'
+    words.  For example, to break up a large word into smaller parts you might do:
 
-		: SUB1 ... subword ... ;
-		: SUB2 ... subword ... ;
-		: SUB3 ... subword ... ;
-		: MAIN ... defined in terms of SUB1, SUB2, SUB3 ... ;
-		HIDE SUB1
-		HIDE SUB2
-		HIDE SUB3
+        : SUB1 ... subword ... ;
+        : SUB2 ... subword ... ;
+        : SUB3 ... subword ... ;
+        : MAIN ... defined in terms of SUB1, SUB2, SUB3 ... ;
+        HIDE SUB1
+        HIDE SUB2
+        HIDE SUB3
 
-	After this, only MAIN is 'exported' or seen by the rest of the program.
+    After this, only MAIN is 'exported' or seen by the rest of the program.
 */
 
-	defcode "HIDDEN",6,,HIDDEN
-	pop %edi		// Dictionary entry.
-	addl $4,%edi		// Point to name/flags byte.
-	xorb $F_HIDDEN,(%edi)	// Toggle the HIDDEN bit.
-	NEXT
+    defcode "HIDDEN",6,,HIDDEN
+    pop %edi        // Dictionary entry.
+    addl $4,%edi        // Point to name/flags byte.
+    xorb $F_HIDDEN,(%edi)    // Toggle the HIDDEN bit.
+    NEXT
 
-	defword "HIDE",4,,HIDE
-	.int WORD		// Get the word (after HIDE).
-	.int FIND		// Look up in the dictionary.
-	.int HIDDEN		// Set F_HIDDEN flag.
-	.int EXIT		// Return.
+    defword "HIDE",4,,HIDE
+    .int WORD        // Get the word (after HIDE).
+    .int FIND        // Look up in the dictionary.
+    .int HIDDEN        // Set F_HIDDEN flag.
+    .int EXIT        // Return.
 
 /*
-	' (TICK) is a standard FORTH word which returns the codeword pointer of the next word.
+    ' (TICK) is a standard FORTH word which returns the codeword pointer of the next word.
 
-	The common usage is:
+    The common usage is:
 
-	' FOO ,
+    ' FOO ,
 
-	which appends the codeword of FOO to the current word we are defining (this only works in compiled code).
+    which appends the codeword of FOO to the current word we are defining (this only works in compiled code).
 
-	You tend to use ' in IMMEDIATE words.  For example an alternate (and rather useless) way to define
-	a literal 2 might be:
+    You tend to use ' in IMMEDIATE words.  For example an alternate (and rather useless) way to define
+    a literal 2 might be:
 
-	: LIT2 IMMEDIATE
-		' LIT ,		\ Appends LIT to the currently-being-defined word
-		2 ,		\ Appends the number 2 to the currently-being-defined word
-	;
+    : LIT2 IMMEDIATE
+        ' LIT ,        \ Appends LIT to the currently-being-defined word
+        2 ,        \ Appends the number 2 to the currently-being-defined word
+    ;
 
-	So you could do:
+    So you could do:
 
-	: DOUBLE LIT2 * ;
+    : DOUBLE LIT2 * ;
 
-	(If you don't understand how LIT2 works, then you should review the material about compiling words
-	and immediate mode).
+    (If you don't understand how LIT2 works, then you should review the material about compiling words
+    and immediate mode).
 
-	This definition of ' uses a cheat which I copied from buzzard92.  As a result it only works in
-	compiled code.  It is possible to write a version of ' based on WORD, FIND, >CFA which works in
-	immediate mode too.
+    This definition of ' uses a cheat which I copied from buzzard92.  As a result it only works in
+    compiled code.  It is possible to write a version of ' based on WORD, FIND, >CFA which works in
+    immediate mode too.
 */
-	defcode "'",1,,TICK
-	lodsl			// Get the address of the next word and skip it.
-	pushl %eax		// Push it on the stack.
-	NEXT
+    defcode "'",1,,TICK
+    lodsl            // Get the address of the next word and skip it.
+    pushl %eax        // Push it on the stack.
+    NEXT
 
 /*
-	BRANCHING ----------------------------------------------------------------------
+    BRANCHING ----------------------------------------------------------------------
 
-	It turns out that all you need in order to define looping constructs, IF-statements, etc.
-	are two primitives.
+    It turns out that all you need in order to define looping constructs, IF-statements, etc.
+    are two primitives.
 
-	BRANCH is an unconditional branch. 0BRANCH is a conditional branch (it only branches if the
-	top of stack is zero).
+    BRANCH is an unconditional branch. 0BRANCH is a conditional branch (it only branches if the
+    top of stack is zero).
 
-	The diagram below shows how BRANCH works in some imaginary compiled word.  When BRANCH executes,
-	%esi starts by pointing to the offset field (compare to LIT above):
+    The diagram below shows how BRANCH works in some imaginary compiled word.  When BRANCH executes,
+    %esi starts by pointing to the offset field (compare to LIT above):
 
-	+---------------------+-------+---- - - ---+------------+------------+---- - - - ----+------------+
-	| (Dictionary header) | DOCOL |            | BRANCH     | offset     | (skipped)     | word       |
-	+---------------------+-------+---- - - ---+------------+-----|------+---- - - - ----+------------+
-								   ^  |			      ^
-								   |  |			      |
-								   |  +-----------------------+
-								  %esi added to offset
+    +---------------------+-------+---- - - ---+------------+------------+---- - - - ----+------------+
+    | (Dictionary header) | DOCOL |            | BRANCH     | offset     | (skipped)     | word       |
+    +---------------------+-------+---- - - ---+------------+-----|------+---- - - - ----+------------+
+                                   ^  |                  ^
+                                   |  |                  |
+                                   |  +-----------------------+
+                                  %esi added to offset
 
-	The offset is added to %esi to make the new %esi, and the result is that when NEXT runs, execution
-	continues at the branch target.  Negative offsets work as expected.
+    The offset is added to %esi to make the new %esi, and the result is that when NEXT runs, execution
+    continues at the branch target.  Negative offsets work as expected.
 
-	0BRANCH is the same except the branch happens conditionally.
+    0BRANCH is the same except the branch happens conditionally.
 
-	Now standard FORTH words such as IF, THEN, ELSE, WHILE, REPEAT, etc. can be implemented entirely
-	in FORTH.  They are IMMEDIATE words which append various combinations of BRANCH or 0BRANCH
-	into the word currently being compiled.
+    Now standard FORTH words such as IF, THEN, ELSE, WHILE, REPEAT, etc. can be implemented entirely
+    in FORTH.  They are IMMEDIATE words which append various combinations of BRANCH or 0BRANCH
+    into the word currently being compiled.
 
-	As an example, code written like this:
+    As an example, code written like this:
 
-		condition-code IF true-part THEN rest-code
+        condition-code IF true-part THEN rest-code
 
-	compiles to:
+    compiles to:
 
-		condition-code 0BRANCH OFFSET true-part rest-code
-					  |		^
-					  |		|
-					  +-------------+
-*/
-
-	defcode "BRANCH",6,,BRANCH
-	add (%esi),%esi		// add the offset to the instruction pointer
-	NEXT
-
-	defcode "0BRANCH",7,,ZBRANCH
-	pop %eax
-	test %eax,%eax		// top of stack is zero?
-	jz code_BRANCH		// if so, jump back to the branch function above
-	lodsl			// otherwise we need to skip the offset
-	NEXT
-
-/*
-	LITERAL STRINGS ----------------------------------------------------------------------
-
-	LITSTRING is a primitive used to implement the ." and S" operators (which are written in
-	FORTH).  See the definition of those operators later.
-
-	TELL just prints a string.  It's more efficient to define this in assembly because we
-	can make it a single Linux syscall.
+        condition-code 0BRANCH OFFSET true-part rest-code
+                      |        ^
+                      |        |
+                      +-------------+
 */
 
-	defcode "LITSTRING",9,,LITSTRING
-	lodsl			// get the length of the string
-	push %esi		// push the address of the start of the string
-	push %eax		// push it on the stack
-	addl %eax,%esi		// skip past the string
- 	addl $3,%esi		// but round up to next 4 byte boundary
-	andl $~3,%esi
-	NEXT
+    defcode "BRANCH",6,,BRANCH
+    add (%esi),%esi        // add the offset to the instruction pointer
+    NEXT
 
-	defcode "TELL",4,,TELL
-	mov $1,%ebx		// 1st param: stdout
-	pop %edx		// 3rd param: length of string
-	pop %ecx		// 2nd param: address of string
-	mov $__NR_write,%eax	// write syscall
-	int $0x80
-	NEXT
+    defcode "0BRANCH",7,,ZBRANCH
+    pop %eax
+    test %eax,%eax        // top of stack is zero?
+    jz code_BRANCH        // if so, jump back to the branch function above
+    lodsl            // otherwise we need to skip the offset
+    NEXT
 
 /*
-	QUIT AND INTERPRET ----------------------------------------------------------------------
+    LITERAL STRINGS ----------------------------------------------------------------------
 
-	QUIT is the first FORTH function called, almost immediately after the FORTH system "boots".
-	As explained before, QUIT doesn't "quit" anything.  It does some initialisation (in particular
-	it clears the return stack) and it calls INTERPRET in a loop to interpret commands.  The
-	reason it is called QUIT is because you can call it from your own FORTH words in order to
-	"quit" your program and start again at the user prompt.
+    LITSTRING is a primitive used to implement the ." and S" operators (which are written in
+    FORTH).  See the definition of those operators later.
 
-	INTERPRET is the FORTH interpreter ("toploop", "toplevel" or "REPL" might be a more accurate
-	description -- see: http://en.wikipedia.org/wiki/REPL).
+    TELL just prints a string.  It's more efficient to define this in assembly because we
+    can make it a single Linux syscall.
 */
 
-	// QUIT must not return (ie. must not call EXIT).
-	defword "QUIT",4,,QUIT
-	.int RZ,RSPSTORE	// R0 RSP!, clear the return stack
-	.int INTERPRET		// interpret the next word
-	.int BRANCH,-8		// and loop (indefinitely)
+    defcode "LITSTRING",9,,LITSTRING
+    lodsl            // get the length of the string
+    push %esi        // push the address of the start of the string
+    push %eax        // push it on the stack
+    addl %eax,%esi        // skip past the string
+     addl $3,%esi        // but round up to next 4 byte boundary
+    andl $~3,%esi
+    NEXT
+
+    defcode "TELL",4,,TELL
+    mov $1,%ebx        // 1st param: stdout
+    pop %edx        // 3rd param: length of string
+    pop %ecx        // 2nd param: address of string
+    mov $__NR_write,%eax    // write syscall
+    int $0x80
+    NEXT
 
 /*
-	This interpreter is pretty simple, but remember that in FORTH you can always override
-	it later with a more powerful one!
+    QUIT AND INTERPRET ----------------------------------------------------------------------
+
+    QUIT is the first FORTH function called, almost immediately after the FORTH system "boots".
+    As explained before, QUIT doesn't "quit" anything.  It does some initialisation (in particular
+    it clears the return stack) and it calls INTERPRET in a loop to interpret commands.  The
+    reason it is called QUIT is because you can call it from your own FORTH words in order to
+    "quit" your program and start again at the user prompt.
+
+    INTERPRET is the FORTH interpreter ("toploop", "toplevel" or "REPL" might be a more accurate
+    description -- see: http://en.wikipedia.org/wiki/REPL).
+*/
+
+    // QUIT must not return (ie. must not call EXIT).
+    defword "QUIT",4,,QUIT
+    .int RZ,RSPSTORE    // R0 RSP!, clear the return stack
+    .int INTERPRET        // interpret the next word
+    .int BRANCH,-8        // and loop (indefinitely)
+
+/*
+    This interpreter is pretty simple, but remember that in FORTH you can always override
+    it later with a more powerful one!
  */
-	defcode "INTERPRET",9,,INTERPRET
-	call _WORD		// Returns %ecx = length, %edi = pointer to word.
+    defcode "INTERPRET",9,,INTERPRET
+    call _WORD        // Returns %ecx = length, %edi = pointer to word.
 
-	// Is it in the dictionary?
-	xor %eax,%eax
-	movl %eax,interpret_is_lit // Not a literal number (not yet anyway ...)
-	call _FIND		// Returns %eax = pointer to header or 0 if not found.
-	test %eax,%eax		// Found?
-	jz 1f
+    // Is it in the dictionary?
+    xor %eax,%eax
+    movl %eax,interpret_is_lit // Not a literal number (not yet anyway ...)
+    call _FIND        // Returns %eax = pointer to header or 0 if not found.
+    test %eax,%eax        // Found?
+    jz 1f
 
-	// In the dictionary.  Is it an IMMEDIATE codeword?
-	mov %eax,%edi		// %edi = dictionary entry
-	movb 4(%edi),%al	// Get name+flags.
-	push %ax		// Just save it for now.
-	call _TCFA		// Convert dictionary entry (in %edi) to codeword pointer.
-	pop %ax
-	andb $F_IMMED,%al	// Is IMMED flag set?
-	mov %edi,%eax
-	jnz 4f			// If IMMED, jump straight to executing.
+    // In the dictionary.  Is it an IMMEDIATE codeword?
+    mov %eax,%edi        // %edi = dictionary entry
+    movb 4(%edi),%al    // Get name+flags.
+    push %ax        // Just save it for now.
+    call _TCFA        // Convert dictionary entry (in %edi) to codeword pointer.
+    pop %ax
+    andb $F_IMMED,%al    // Is IMMED flag set?
+    mov %edi,%eax
+    jnz 4f            // If IMMED, jump straight to executing.
 
-	jmp 2f
+    jmp 2f
 
-1:	// Not in the dictionary (not a word) so assume it's a literal number.
-	incl interpret_is_lit
-	call _NUMBER		// Returns the parsed number in %eax, %ecx > 0 if error
-	test %ecx,%ecx
-	jnz 6f
-	mov %eax,%ebx
-	mov $LIT,%eax		// The word is LIT
+1:    // Not in the dictionary (not a word) so assume it's a literal number.
+    incl interpret_is_lit
+    call _NUMBER        // Returns the parsed number in %eax, %ecx > 0 if error
+    test %ecx,%ecx
+    jnz 6f
+    mov %eax,%ebx
+    mov $LIT,%eax        // The word is LIT
 
-2:	// Are we compiling or executing?
-	movl var_STATE,%edx
-	test %edx,%edx
-	jz 4f			// Jump if executing.
+2:    // Are we compiling or executing?
+    movl var_STATE,%edx
+    test %edx,%edx
+    jz 4f            // Jump if executing.
 
-	// Compiling - just append the word to the current dictionary definition.
-	call _COMMA
-	mov interpret_is_lit,%ecx // Was it a literal?
-	test %ecx,%ecx
-	jz 3f
-	mov %ebx,%eax		// Yes, so LIT is followed by a number.
-	call _COMMA
-3:	NEXT
+    // Compiling - just append the word to the current dictionary definition.
+    call _COMMA
+    mov interpret_is_lit,%ecx // Was it a literal?
+    test %ecx,%ecx
+    jz 3f
+    mov %ebx,%eax        // Yes, so LIT is followed by a number.
+    call _COMMA
+3:    NEXT
 
-4:	// Executing - run it!
-	mov interpret_is_lit,%ecx // Literal?
-	test %ecx,%ecx		// Literal?
-	jnz 5f
+4:    // Executing - run it!
+    mov interpret_is_lit,%ecx // Literal?
+    test %ecx,%ecx        // Literal?
+    jnz 5f
 
-	// Not a literal, execute it now.  This never returns, but the codeword will
-	// eventually call NEXT which will reenter the loop in QUIT.
-	jmp *(%eax)
+    // Not a literal, execute it now.  This never returns, but the codeword will
+    // eventually call NEXT which will reenter the loop in QUIT.
+    jmp *(%eax)
 
-5:	// Executing a literal, which means push it on the stack.
-	push %ebx
-	NEXT
+5:    // Executing a literal, which means push it on the stack.
+    push %ebx
+    NEXT
 
-6:	// Parse error (not a known word or a number in the current BASE).
-	// Print an error message followed by up to 40 characters of context.
-	mov $2,%ebx		// 1st param: stderr
-	mov $errmsg,%ecx	// 2nd param: error message
-	mov $errmsgend-errmsg,%edx // 3rd param: length of string
-	mov $__NR_write,%eax	// write syscall
-	int $0x80
+6:    // Parse error (not a known word or a number in the current BASE).
+    // Print an error message followed by up to 40 characters of context.
+    mov $2,%ebx        // 1st param: stderr
+    mov $errmsg,%ecx    // 2nd param: error message
+    mov $errmsgend-errmsg,%edx // 3rd param: length of string
+    mov $__NR_write,%eax    // write syscall
+    int $0x80
 
-	mov (currkey),%ecx	// the error occurred just before currkey position
-	mov %ecx,%edx
-	sub $buffer,%edx	// %edx = currkey - buffer (length in buffer before currkey)
-	cmp $40,%edx		// if > 40, then print only 40 characters
-	jle 7f
-	mov $40,%edx
-7:	sub %edx,%ecx		// %ecx = start of area to print, %edx = length
-	mov $__NR_write,%eax	// write syscall
-	int $0x80
+    mov (currkey),%ecx    // the error occurred just before currkey position
+    mov %ecx,%edx
+    sub $buffer,%edx    // %edx = currkey - buffer (length in buffer before currkey)
+    cmp $40,%edx        // if > 40, then print only 40 characters
+    jle 7f
+    mov $40,%edx
+7:    sub %edx,%ecx        // %ecx = start of area to print, %edx = length
+    mov $__NR_write,%eax    // write syscall
+    int $0x80
 
-	mov $errmsgnl,%ecx	// newline
-	mov $1,%edx
-	mov $__NR_write,%eax	// write syscall
-	int $0x80
+    mov $errmsgnl,%ecx    // newline
+    mov $1,%edx
+    mov $__NR_write,%eax    // write syscall
+    int $0x80
 
-	NEXT
+    NEXT
 
-	.section .rodata
+    .section .rodata
 errmsg: .ascii "PARSE ERROR: "
 errmsgend:
 errmsgnl: .ascii "\n"
 
-	.data			// NB: easier to fit in the .data section
-	.align 4
+    .data            // NB: easier to fit in the .data section
+    .align 4
 interpret_is_lit:
-	.int 0			// Flag used to record if reading a literal
+    .int 0            // Flag used to record if reading a literal
 
 /*
-	ODDS AND ENDS ----------------------------------------------------------------------
+    ODDS AND ENDS ----------------------------------------------------------------------
 
-	CHAR puts the ASCII code of the first character of the following word on the stack.  For example
-	CHAR A puts 65 on the stack.
+    CHAR puts the ASCII code of the first character of the following word on the stack.  For example
+    CHAR A puts 65 on the stack.
 
-	EXECUTE is used to run execution tokens.  See the discussion of execution tokens in the
-	FORTH code for more details.
+    EXECUTE is used to run execution tokens.  See the discussion of execution tokens in the
+    FORTH code for more details.
 
-	SYSCALL0, SYSCALL1, SYSCALL2, SYSCALL3 make a standard Linux system call.  (See <asm/unistd.h>
-	for a list of system call numbers).  As their name suggests these forms take between 0 and 3
-	syscall parameters, plus the system call number.
+    SYSCALL0, SYSCALL1, SYSCALL2, SYSCALL3 make a standard Linux system call.  (See <asm/unistd.h>
+    for a list of system call numbers).  As their name suggests these forms take between 0 and 3
+    syscall parameters, plus the system call number.
 
-	In this FORTH, SYSCALL0 must be the last word in the built-in (assembler) dictionary because we
-	initialise the LATEST variable to point to it.  This means that if you want to extend the assembler
-	part, you must put new words before SYSCALL0, or else change how LATEST is initialised.
+    In this FORTH, SYSCALL0 must be the last word in the built-in (assembler) dictionary because we
+    initialise the LATEST variable to point to it.  This means that if you want to extend the assembler
+    part, you must put new words before SYSCALL0, or else change how LATEST is initialised.
 */
 
-	defcode "CHAR",4,,CHAR
-	call _WORD		// Returns %ecx = length, %edi = pointer to word.
-	xor %eax,%eax
-	movb (%edi),%al		// Get the first character of the word.
-	push %eax		// Push it onto the stack.
-	NEXT
+    defcode "CHAR",4,,CHAR
+    call _WORD        // Returns %ecx = length, %edi = pointer to word.
+    xor %eax,%eax
+    movb (%edi),%al        // Get the first character of the word.
+    push %eax        // Push it onto the stack.
+    NEXT
 
-	defcode "EXECUTE",7,,EXECUTE
-	pop %eax		// Get xt into %eax
-	jmp *(%eax)		// and jump to it.
-				// After xt runs its NEXT will continue executing the current word.
+    defcode "EXECUTE",7,,EXECUTE
+    pop %eax        // Get xt into %eax
+    jmp *(%eax)        // and jump to it.
+                // After xt runs its NEXT will continue executing the current word.
 
-	defcode "SYSCALL3",8,,SYSCALL3
-	pop %eax		// System call number (see <asm/unistd.h>)
-	pop %ebx		// First parameter.
-	pop %ecx		// Second parameter
-	pop %edx		// Third parameter
-	int $0x80
-	push %eax		// Result (negative for -errno)
-	NEXT
+    defcode "SYSCALL3",8,,SYSCALL3
+    pop %eax        // System call number (see <asm/unistd.h>)
+    pop %ebx        // First parameter.
+    pop %ecx        // Second parameter
+    pop %edx        // Third parameter
+    int $0x80
+    push %eax        // Result (negative for -errno)
+    NEXT
 
-	defcode "SYSCALL2",8,,SYSCALL2
-	pop %eax		// System call number (see <asm/unistd.h>)
-	pop %ebx		// First parameter.
-	pop %ecx		// Second parameter
-	int $0x80
-	push %eax		// Result (negative for -errno)
-	NEXT
+    defcode "SYSCALL2",8,,SYSCALL2
+    pop %eax        // System call number (see <asm/unistd.h>)
+    pop %ebx        // First parameter.
+    pop %ecx        // Second parameter
+    int $0x80
+    push %eax        // Result (negative for -errno)
+    NEXT
 
-	defcode "SYSCALL1",8,,SYSCALL1
-	pop %eax		// System call number (see <asm/unistd.h>)
-	pop %ebx		// First parameter.
-	int $0x80
-	push %eax		// Result (negative for -errno)
-	NEXT
+    defcode "SYSCALL1",8,,SYSCALL1
+    pop %eax        // System call number (see <asm/unistd.h>)
+    pop %ebx        // First parameter.
+    int $0x80
+    push %eax        // Result (negative for -errno)
+    NEXT
 
-	defcode "SYSCALL0",8,,SYSCALL0
-	pop %eax		// System call number (see <asm/unistd.h>)
-	int $0x80
-	push %eax		// Result (negative for -errno)
-	NEXT
+    defcode "SYSCALL0",8,,SYSCALL0
+    pop %eax        // System call number (see <asm/unistd.h>)
+    int $0x80
+    push %eax        // Result (negative for -errno)
+    NEXT
 
 /*
-	DATA SEGMENT ----------------------------------------------------------------------
+    DATA SEGMENT ----------------------------------------------------------------------
 
-	Here we set up the Linux data segment, used for user definitions and variously known as just
-	the 'data segment', 'user memory' or 'user definitions area'.  It is an area of memory which
-	grows upwards and stores both newly-defined FORTH words and global variables of various
-	sorts.
+    Here we set up the Linux data segment, used for user definitions and variously known as just
+    the 'data segment', 'user memory' or 'user definitions area'.  It is an area of memory which
+    grows upwards and stores both newly-defined FORTH words and global variables of various
+    sorts.
 
-	It is completely analogous to the C heap, except there is no generalised 'malloc' and 'free'
-	(but as with everything in FORTH, writing such functions would just be a Simple Matter
-	Of Programming).  Instead in normal use the data segment just grows upwards as new FORTH
-	words are defined/appended to it.
+    It is completely analogous to the C heap, except there is no generalised 'malloc' and 'free'
+    (but as with everything in FORTH, writing such functions would just be a Simple Matter
+    Of Programming).  Instead in normal use the data segment just grows upwards as new FORTH
+    words are defined/appended to it.
 
-	There are various "features" of the GNU toolchain which make setting up the data segment
-	more complicated than it really needs to be.  One is the GNU linker which inserts a random
-	"build ID" segment.  Another is Address Space Randomization which means we can't tell
-	where the kernel will choose to place the data segment (or the stack for that matter).
+    There are various "features" of the GNU toolchain which make setting up the data segment
+    more complicated than it really needs to be.  One is the GNU linker which inserts a random
+    "build ID" segment.  Another is Address Space Randomization which means we can't tell
+    where the kernel will choose to place the data segment (or the stack for that matter).
 
-	Therefore writing this set_up_data_segment assembler routine is a little more complicated
-	than it really needs to be.  We ask the Linux kernel where it thinks the data segment starts
-	using the brk(2) system call, then ask it to reserve some initial space (also using brk(2)).
+    Therefore writing this set_up_data_segment assembler routine is a little more complicated
+    than it really needs to be.  We ask the Linux kernel where it thinks the data segment starts
+    using the brk(2) system call, then ask it to reserve some initial space (also using brk(2)).
 
-	You don't need to worry about this code.
+    You don't need to worry about this code.
 */
-	.text
-	.set INITIAL_DATA_SEGMENT_SIZE,65536
+    .text
+    .set INITIAL_DATA_SEGMENT_SIZE,65536
 set_up_data_segment:
-	xor %ebx,%ebx		// Call brk(0)
-	movl $__NR_brk,%eax
-	int $0x80
-	movl %eax,var_HERE	// Initialise HERE to point at beginning of data segment.
-	addl $INITIAL_DATA_SEGMENT_SIZE,%eax	// Reserve nn bytes of memory for initial data segment.
-	movl %eax,%ebx		// Call brk(HERE+INITIAL_DATA_SEGMENT_SIZE)
-	movl $__NR_brk,%eax
-	int $0x80
-	ret
+    xor %ebx,%ebx        // Call brk(0)
+    movl $__NR_brk,%eax
+    int $0x80
+    movl %eax,var_HERE    // Initialise HERE to point at beginning of data segment.
+    addl $INITIAL_DATA_SEGMENT_SIZE,%eax    // Reserve nn bytes of memory for initial data segment.
+    movl %eax,%ebx        // Call brk(HERE+INITIAL_DATA_SEGMENT_SIZE)
+    movl $__NR_brk,%eax
+    int $0x80
+    ret
 
 /*
-	We allocate static buffers for the return static and input buffer (used when
-	reading in files and text that the user types in).
+    We allocate static buffers for the return static and input buffer (used when
+    reading in files and text that the user types in).
 */
-	.set RETURN_STACK_SIZE,8192
-	.set BUFFER_SIZE,4096
+    .set RETURN_STACK_SIZE,8192
+    .set BUFFER_SIZE,4096
 
-	.bss
+    .bss
 /* FORTH return stack. */
-	.align 4096
+    .align 4096
 return_stack:
-	.space RETURN_STACK_SIZE
-return_stack_top:		// Initial top of return stack.
+    .space RETURN_STACK_SIZE
+return_stack_top:        // Initial top of return stack.
 
 /* This is used as a temporary input buffer when reading from files or the terminal. */
-	.align 4096
+    .align 4096
 buffer:
-	.space BUFFER_SIZE
+    .space BUFFER_SIZE
 
 /*
-	START OF FORTH CODE ----------------------------------------------------------------------
+    START OF FORTH CODE ----------------------------------------------------------------------
 
-	We've now reached the stage where the FORTH system is running and self-hosting.  All further
-	words can be written as FORTH itself, including words like IF, THEN, .", etc which in most
-	languages would be considered rather fundamental.
+    We've now reached the stage where the FORTH system is running and self-hosting.  All further
+    words can be written as FORTH itself, including words like IF, THEN, .", etc which in most
+    languages would be considered rather fundamental.
 
-	I used to append this here in the assembly file, but I got sick of fighting against gas's
-	crack-smoking (lack of) multiline string syntax.  So now that is in a separate file called
-	jonesforth.f
+    I used to append this here in the assembly file, but I got sick of fighting against gas's
+    crack-smoking (lack of) multiline string syntax.  So now that is in a separate file called
+    jonesforth.f
 
-	If you don't already have that file, download it from http://annexia.org/forth in order
-	to continue the tutorial.
+    If you don't already have that file, download it from http://annexia.org/forth in order
+    to continue the tutorial.
 */
 
 
