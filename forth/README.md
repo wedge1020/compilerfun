@@ -2153,24 +2153,26 @@ general plan is:
                    len                         pad  codeword
 ```
 
-    (3) Set LATEST to point to the newly defined word, ...
+  * Set `LATEST` to point to the newly defined word
+  * and  most  importantly: leave  `HERE`  pointing  just after  the  new
+    codeword. This is where the interpreter will append codewords.
+  * Set `STATE`  to `1`. This goes  into compile mode so  the interpreter
+    starts appending codewords to our partially-formed header.
 
-    (4) .. and most importantly leave HERE pointing just after the new codeword.  This is where
-        the interpreter will append codewords.
+After `:` has run, our input is here:
 
-    (5) Set STATE to 1.  This goes into compile mode so the interpreter starts appending codewords to
-        our partially-formed header.
-
-    After : has run, our input is here:
-
+```
     : DOUBLE DUP + ;
              ^
          |
         Next byte returned by KEY will be the 'D' character of DUP
+```
 
-    so the interpreter (now it's in compile mode, so I guess it's really the compiler) reads "DUP",
-    looks it up in the dictionary, gets its codeword pointer, and appends it:
+...  so the  interpreter (now  it's in  *compile* mode,  so I  guess it's
+really the compiler)  reads "`DUP`", looks it up in  the dictionary, gets
+its codeword pointer, and appends it:
 
+```
                                          +-- HERE updated to point here.
                                          |
                                          V
@@ -2178,9 +2180,11 @@ general plan is:
     | LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      | DUP        |
     +---------+---+---+---+---+---+---+---+---+------------+------------+
                    len                         pad  codeword
+```
 
-    Next we read +, get the codeword pointer, and append it:
+Next we read `+`, get the codeword pointer, and append it:
 
+```
                                               +-- HERE updated to point here.
                                               |
                                               V
@@ -2188,95 +2192,115 @@ general plan is:
     | LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      | DUP        | +          |
     +---------+---+---+---+---+---+---+---+---+------------+------------+------------+
                    len                         pad  codeword
+```
 
-    The issue is what happens next.  Obviously what we _don't_ want to happen is that we
-    read ";" and compile it and go on compiling everything afterwards.
+The issue is what happens next.  Obviously what we _don't_ want to happen
+is  that we  read "`;`"  and compile  it and  go on  compiling everything
+afterwards.
 
-    At this point, FORTH uses a trick.  Remember the length byte in the dictionary definition
-    isn't just a plain length byte, but can also contain flags.  One flag is called the
-    IMMEDIATE flag (F_IMMED in this code).  If a word in the dictionary is flagged as
-    IMMEDIATE then the interpreter runs it immediately _even if it's in compile mode_.
+At this  point, `FORTH`  uses a  trick. Remember the  length byte  in the
+dictionary  definition isn't  just  a  plain length  byte,  but can  also
+contain flags. One flag is called the `IMMEDIATE` flag (`F_IMMED` in this
+code). If  a word in  the dictionary is  flagged as `IMMEDIATE`  then the
+interpreter runs it immediately _even if it's in compile mode_.
 
-    This is how the word ; (SEMICOLON) works -- as a word flagged in the dictionary as IMMEDIATE.
+This is how  the word `;` (SEMICOLON)  works -- as a word  flagged in the
+dictionary as `IMMEDIATE`.
 
-    And all it does is append the codeword for EXIT on to the current definition and switch
-    back to immediate mode (set STATE back to 0).  Shortly we'll see the actual definition
-    of ; and we'll see that it's really a very simple definition, declared IMMEDIATE.
+And all  it does  is append  the codeword  for `EXIT`  on to  the current
+definition and switch  back to immediate mode (set `STATE`  back to `0`).
+Shortly we'll  see the actual definition  of `;` and we'll  see that it's
+really a very simple definition, declared `IMMEDIATE`.
 
-    After the interpreter reads ; and executes it 'immediately', we get this:
+After the  interpreter reads  `;` and executes  it 'immediately',  we get
+this:
 
-    +---------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
-    | LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      | DUP        | +          | EXIT       |
-    +---------+---+---+---+---+---+---+---+---+------------+------------+------------+------------+
-                   len                         pad  codeword                           ^
-                                                       |
-                                                      HERE
-    STATE is set to 0.
+```
+    +---------+---+---+---+---+---+---+---+---+-------+-----+---+------+
+    | LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL | DUP | + | EXIT |
+    +---------+---+---+---+---+---+---+---+---+-------+-----+---+------+
+               len                         pad  codeword            ^
+                                                                    |
+                                                                  HERE
+```
 
-    And that's it, job done, our new definition is compiled, and we're back in immediate mode
-    just reading and executing words, perhaps including a call to test our new word DOUBLE.
+`STATE` is set to 0.
 
-    The only last wrinkle in this is that while our word was being compiled, it was in a
-    half-finished state.  We certainly wouldn't want DOUBLE to be called somehow during
-    this time.  There are several ways to stop this from happening, but in FORTH what we
-    do is flag the word with the HIDDEN flag (F_HIDDEN in this code) just while it is
-    being compiled.  This prevents FIND from finding it, and thus in theory stops any
-    chance of it being called.
+And that's it,  job done, our new definition is  compiled, and we're back
+in *immediate mode* just reading and executing words, perhaps including a
+call to test our new word `DOUBLE`.
 
-    The above explains how compiling, : (COLON) and ; (SEMICOLON) works and in a moment I'm
-    going to define them.  The : (COLON) function can be made a little bit more general by writing
-    it in two parts.  The first part, called CREATE, makes just the header:
+The only last wrinkle in this is  that while our word was being compiled,
+it was in  a half-finished state. We certainly wouldn't  want `DOUBLE` to
+be called somehow  during this time. There are several  ways to stop this
+from happening,  but in  `FORTH` what  we do  is flag  the word  with the
+**HIDDEN**  flag  (`F_HIDDEN`  in  this  code) just  while  it  is  being
+compiled. This prevents `FIND` from finding  it, and thus in theory stops
+any chance of it being called.
 
-                           +-- Afterwards, HERE points here.
-                           |
-                           V
+The above explains  how compiling, `:` (COLON) and  `;` (SEMICOLON) works
+and in a moment I'm going to define them. The `:` (COLON) function can be
+made a  little bit  more general by  writing it in  two parts.  The first
+part, called `CREATE`, makes just the header:
+
+```
+                    +-- Afterwards, HERE points here.
+                    |
+                    V
     +---------+---+---+---+---+---+---+---+---+
     | LINK    | 6 | D | O | U | B | L | E | 0 |
     +---------+---+---+---+---+---+---+---+---+
-                   len                         pad
+               len                         pad
+```
 
-    and the second part, the actual definition of : (COLON), calls CREATE and appends the
-    DOCOL codeword, so leaving:
+... and  the second  part, the  actual definition  of `:`  (COLON), calls
+`CREATE` and appends the `DOCOL` codeword, so leaving:
 
+```
                                 +-- Afterwards, HERE points here.
                                 |
                                 V
     +---------+---+---+---+---+---+---+---+---+------------+
     | LINK    | 6 | D | O | U | B | L | E | 0 | DOCOL      |
     +---------+---+---+---+---+---+---+---+---+------------+
-                   len                         pad  codeword
+               len                         pad  codeword
+```
 
-    CREATE is a standard FORTH word and the advantage of this split is that we can reuse it to
-    create other types of words (not just ones which contain code, but words which contain variables,
-    constants and other data).
-*/
+`CREATE` is  a standard `FORTH` word  and the advantage of  this split is
+that we can reuse it to create  other types of words (not just ones which
+contain  code, but  words which  contain variables,  constants and  other
+data).
 
+### x86 assembly: implementing `CREATE`
+
+```
     defcode "CREATE",6,,CREATE
 
     // Get the name length and address.
-    pop %ecx        // %ecx = length
-    pop %ebx        // %ebx = address of name
+    pop  %ecx                   // %ecx = length
+    pop  %ebx                   // %ebx = address of name
 
     // Link pointer.
-    movl var_HERE,%edi    // %edi is the address of the header
-    movl var_LATEST,%eax    // Get link pointer
-    stosl            // and store it in the header.
+    movl var_HERE,   %edi       // %edi is the address of the header
+    movl var_LATEST, %eax       // Get link pointer
+    stosl                       // and store it in the header.
 
     // Length byte and the word itself.
-    mov %cl,%al        // Get the length.
-    stosb            // Store the length/flags byte.
+    mov  %cl,        %al        // Get the length.
+    stosb                       // Store the length/flags byte.
     push %esi
-    mov %ebx,%esi        // %esi = word
-    rep movsb        // Copy the word
-    pop %esi
-    addl $3,%edi        // Align to next 4 byte boundary.
-    andl $~3,%edi
+    mov  %ebx,       %esi       // %esi = word
+    rep  movsb                  // Copy the word
+    pop  %esi
+    addl $3,         %edi       // Align to next 4 byte boundary.
+    andl $~3,        %edi
 
     // Update LATEST and HERE.
-    movl var_HERE,%eax
-    movl %eax,var_LATEST
-    movl %edi,var_HERE
+    movl var_HERE,   %eax
+    movl %eax,       var_LATEST
+    movl %edi,       var_HERE
     NEXT
+```
 
 /*
     Because I want to define : (COLON) in FORTH, not assembler, we need a few more FORTH words
