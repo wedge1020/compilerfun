@@ -39,6 +39,9 @@ To build:
   * [EXTENDING THE COMPILER](#EXTENDING-THE-COMPILER)
   * [BRANCHING](#BRANCHING)
   * [LITERAL STRINGS](#LITERAL-STRINGS)
+  * [QUIT AND INTERPRET](#QUIT-AND-INTERPRET)
+  * [ODDS AND ENDS](#ODDS-AND-ENDS)
+  * [START OF FORTH CODE](#START-OF-FORTH-CODE)
 
 ## INTRODUCTION
 
@@ -2641,29 +2644,36 @@ assembly because we can make it a single Linux syscall.
     NEXT
 ```
 
-/*
-    QUIT AND INTERPRET ----------------------------------------------------------------------
+## QUIT AND INTERPRET
 
-    QUIT is the first FORTH function called, almost immediately after the FORTH system "boots".
-    As explained before, QUIT doesn't "quit" anything.  It does some initialisation (in particular
-    it clears the return stack) and it calls INTERPRET in a loop to interpret commands.  The
-    reason it is called QUIT is because you can call it from your own FORTH words in order to
-    "quit" your program and start again at the user prompt.
+`QUIT` is the first `FORTH` function called, almost immediately after the
+`FORTH`  system  "boots".  As  explained before,  `QUIT`  doesn't  "quit"
+anything. It does some initialization (in particular it clears the return
+stack) and  it calls  `INTERPRET` in  a loop  to interpret  commands. The
+reason it  is called  `QUIT` is  because you  can call  it from  your own
+`FORTH` words in order to "quit" your program and start again at the user
+prompt.
 
-    INTERPRET is the FORTH interpreter ("toploop", "toplevel" or "REPL" might be a more accurate
-    description -- see: http://en.wikipedia.org/wiki/REPL).
-*/
+`INTERPRET`  is the  `FORTH`  interpreter ("**toploop**",  "**toplevel**"
+or   "**REPL**"  might   be   a  more   accurate   description  --   see:
+http://en.wikipedia.org/wiki/REPL).
 
+### x86 assembly: implementing `QUIT`
+
+```
     // QUIT must not return (ie. must not call EXIT).
     defword "QUIT",4,,QUIT
     .int RZ,RSPSTORE    // R0 RSP!, clear the return stack
     .int INTERPRET        // interpret the next word
     .int BRANCH,-8        // and loop (indefinitely)
+```
 
-/*
-    This interpreter is pretty simple, but remember that in FORTH you can always override
-    it later with a more powerful one!
- */
+### x86 assembly: implementing `INTERPRET`
+
+This interpreter is  pretty simple, but remember that in  `FORTH` you can
+always override it later with a more powerful one!
+
+```
     defcode "INTERPRET",9,,INTERPRET
     call _WORD        // Returns %ecx = length, %edi = pointer to word.
 
@@ -2755,91 +2765,126 @@ errmsgnl: .ascii "\n"
     .align 4
 interpret_is_lit:
     .int 0            // Flag used to record if reading a literal
+```
 
-/*
-    ODDS AND ENDS ----------------------------------------------------------------------
+## ODDS AND ENDS
 
-    CHAR puts the ASCII code of the first character of the following word on the stack.  For example
-    CHAR A puts 65 on the stack.
+`CHAR` puts the `ASCII` code of the first character of the following word
+on the stack. For example `CHAR A` puts `65` on the stack.
 
-    EXECUTE is used to run execution tokens.  See the discussion of execution tokens in the
-    FORTH code for more details.
+`EXECUTE`  is  used  to  run  execution tokens.  See  the  discussion  of
+execution tokens in the `FORTH` code for more details.
 
-    SYSCALL0, SYSCALL1, SYSCALL2, SYSCALL3 make a standard Linux system call.  (See <asm/unistd.h>
-    for a list of system call numbers).  As their name suggests these forms take between 0 and 3
-    syscall parameters, plus the system call number.
+`SYSCALL0`,  `SYSCALL1`, `SYSCALL2`,  `SYSCALL3`  make  a standard  Linux
+system call. (See `<asm/unistd.h`> for a list of system call numbers). As
+their  name  suggests  these  forms  take between  `0`  and  `3`  syscall
+parameters, plus the system call number.
 
-    In this FORTH, SYSCALL0 must be the last word in the built-in (assembler) dictionary because we
-    initialise the LATEST variable to point to it.  This means that if you want to extend the assembler
-    part, you must put new words before SYSCALL0, or else change how LATEST is initialised.
-*/
+In  this `FORTH`,  `SYSCALL0`  must  be the  last  word  in the  built-in
+(assembler)  dictionary because  we initialise  the `LATEST`  variable to
+point to it.  This means that if  you want to extend  the assembler part,
+you must put new words before  `SYSCALL0`, or else change how `LATEST` is
+initialised.
 
+### x86 assembly: implementing `CHAR`
+
+```
     defcode "CHAR",4,,CHAR
     call _WORD        // Returns %ecx = length, %edi = pointer to word.
-    xor %eax,%eax
-    movb (%edi),%al        // Get the first character of the word.
-    push %eax        // Push it onto the stack.
+    xor  %eax,   %eax
+    movb (%edi), %al  // Get the first character of the word.
+    push %eax         // Push it onto the stack.
     NEXT
+```
 
+### x86 assembly: implementing `EXECUTE`
+
+```
     defcode "EXECUTE",7,,EXECUTE
-    pop %eax        // Get xt into %eax
-    jmp *(%eax)        // and jump to it.
-                // After xt runs its NEXT will continue executing the current word.
+    pop %eax    // Get xt into %eax
+    jmp *(%eax) // and jump to it.
+                // After xt runs its NEXT will continue executing the
+                // current word.
+```
 
+### x86 assembly: implementing `SYSCALL3`
+
+```
     defcode "SYSCALL3",8,,SYSCALL3
-    pop %eax        // System call number (see <asm/unistd.h>)
-    pop %ebx        // First parameter.
-    pop %ecx        // Second parameter
-    pop %edx        // Third parameter
-    int $0x80
+    pop  %eax        // System call number (see <asm/unistd.h>)
+    pop  %ebx        // First parameter.
+    pop  %ecx        // Second parameter
+    pop  %edx        // Third parameter
+    int  $0x80
     push %eax        // Result (negative for -errno)
     NEXT
+```
 
+### x86 assembly: implementing `SYSCALL2`
+
+```
     defcode "SYSCALL2",8,,SYSCALL2
-    pop %eax        // System call number (see <asm/unistd.h>)
-    pop %ebx        // First parameter.
-    pop %ecx        // Second parameter
-    int $0x80
+    pop  %eax        // System call number (see <asm/unistd.h>)
+    pop  %ebx        // First parameter.
+    pop  %ecx        // Second parameter
+    int  $0x80
     push %eax        // Result (negative for -errno)
     NEXT
+```
 
+### x86 assembly: implementing `SYSCALL1`
+
+```
     defcode "SYSCALL1",8,,SYSCALL1
-    pop %eax        // System call number (see <asm/unistd.h>)
-    pop %ebx        // First parameter.
-    int $0x80
+    pop  %eax        // System call number (see <asm/unistd.h>)
+    pop  %ebx        // First parameter.
+    int  $0x80
     push %eax        // Result (negative for -errno)
     NEXT
+```
 
+### x86 assembly: implementing `SYSCALL0`
+
+```
     defcode "SYSCALL0",8,,SYSCALL0
-    pop %eax        // System call number (see <asm/unistd.h>)
-    int $0x80
+    pop  %eax        // System call number (see <asm/unistd.h>)
+    int  $0x80
     push %eax        // Result (negative for -errno)
     NEXT
+```
 
-/*
-    DATA SEGMENT ----------------------------------------------------------------------
+## DATA SEGMENT
 
-    Here we set up the Linux data segment, used for user definitions and variously known as just
-    the 'data segment', 'user memory' or 'user definitions area'.  It is an area of memory which
-    grows upwards and stores both newly-defined FORTH words and global variables of various
-    sorts.
+Here we  set up  the Linux  data segment, used  for user  definitions and
+variously  known as  just the  '**data segment**',  '**user memory**'  or
+'**user definitions area**'. It is an  area of memory which grows upwards
+and  stores both  newly-defined  `FORTH` words  and  global variables  of
+various sorts.
 
-    It is completely analogous to the C heap, except there is no generalised 'malloc' and 'free'
-    (but as with everything in FORTH, writing such functions would just be a Simple Matter
-    Of Programming).  Instead in normal use the data segment just grows upwards as new FORTH
-    words are defined/appended to it.
+It  is  completely  analogous  to  the  `C`  heap,  except  there  is  no
+generalised  '**malloc**'  and  '**free**'  (but as  with  everything  in
+`FORTH`,  writing  such  functions  would  just be  a  Simple  Matter  Of
+Programming). Instead in  normal use the data segment  just grows upwards
+as new `FORTH` words are defined/appended to it.
 
-    There are various "features" of the GNU toolchain which make setting up the data segment
-    more complicated than it really needs to be.  One is the GNU linker which inserts a random
-    "build ID" segment.  Another is Address Space Randomization which means we can't tell
-    where the kernel will choose to place the data segment (or the stack for that matter).
+There are various  "features" of the GNU toolchain which  make setting up
+the data segment more complicated than it  really needs to be. One is the
+`GNU linker`  which inserts a  random "**build ID**" segment.  Another is
+**Address  Space Randomization**  which  means we  can't  tell where  the
+kernel  will choose  to place  the data  segment (or  the stack  for that
+matter).
 
-    Therefore writing this set_up_data_segment assembler routine is a little more complicated
-    than it really needs to be.  We ask the Linux kernel where it thinks the data segment starts
-    using the brk(2) system call, then ask it to reserve some initial space (also using brk(2)).
+Therefore  writing  this  `set_up_data_segment` assembler  routine  is  a
+little more  complicated than  it really  needs to be.  We ask  the Linux
+kernel  where it  thinks the  data  segment starts  using the  **brk(2)**
+system  call, then  ask  it to  reserve some  initial  space (also  using
+**brk(2)**).
 
-    You don't need to worry about this code.
-*/
+You don't need to worry about this code.
+
+### x86 assembly: implementing `set_up_data_segment` routine
+
+```
     .text
     .set INITIAL_DATA_SEGMENT_SIZE,65536
 set_up_data_segment:
@@ -2852,11 +2897,14 @@ set_up_data_segment:
     movl $__NR_brk,%eax
     int $0x80
     ret
+```
 
-/*
-    We allocate static buffers for the return static and input buffer (used when
-    reading in files and text that the user types in).
-*/
+We allocate static  buffers for the return static and  input buffer (used
+when reading in files and text that the user types in).
+
+### x86 assembly: allocating static buffers
+
+```
     .set RETURN_STACK_SIZE,8192
     .set BUFFER_SIZE,4096
 
@@ -2866,26 +2914,29 @@ set_up_data_segment:
 return_stack:
     .space RETURN_STACK_SIZE
 return_stack_top:        // Initial top of return stack.
+```
 
-/* This is used as a temporary input buffer when reading from files or the terminal. */
+This is used as  a temporary input buffer when reading  from files or the
+terminal:
+
+```
     .align 4096
 buffer:
     .space BUFFER_SIZE
+```
 
-/*
-    START OF FORTH CODE ----------------------------------------------------------------------
+## START OF FORTH CODE
 
-    We've now reached the stage where the FORTH system is running and self-hosting.  All further
-    words can be written as FORTH itself, including words like IF, THEN, .", etc which in most
-    languages would be considered rather fundamental.
+We've  now reached  the stage  where the  `FORTH` system  is running  and
+self-hosting.  All  further  words  can be  written  as  `FORTH`  itself,
+including  words like  `IF`, `THEN`,  `."`, etc  which in  most languages
+would be considered rather fundamental.
 
-    I used to append this here in the assembly file, but I got sick of fighting against gas's
-    crack-smoking (lack of) multiline string syntax.  So now that is in a separate file called
-    jonesforth.f
+I  used to  append this  here in  the assembly  file, but  I got  sick of
+fighting against  gas's crack-smoking (lack of)  multiline string syntax.
+So now that is in a separate file called `jonesforth.f`
 
-    If you don't already have that file, download it from http://annexia.org/forth in order
-    to continue the tutorial.
-*/
+If   you   don't    already   have   that   file,    download   it   from
+http://annexia.org/forth in order to continue the tutorial.
 
-
-/* END OF jonesforth.S */
+[next: jonesforth.f](#FORTHCODE.md)
