@@ -9,7 +9,8 @@ $Id: jonesforth.S,v 1.47 2009-09-11 08:33:13 rich Exp $
 To build:
 
 ```
-    gcc -m32 -nostdlib -static -Wl,-Ttext,0 -Wl,--build-id=none -o jonesforth jonesforth.S
+    gcc -m32 -nostdlib -static -Wl,-Ttext,0 -Wl,--build-id=none \
+        -o jonesforth jonesforth.S
 ```
 
 ## TABLE OF CONTENTS
@@ -54,10 +55,10 @@ languages, even if you will never use them.
 
 `LISP` is  the ultimate *high-level*  language, and features  from `LISP`
 are being added every decade to the more common languages. But `FORTH` is
-in some ways  the ultimate in *low-level* programming. Out  of the box it
-lacks features like dynamic memory  management and even strings. In fact,
-at its  primitive level it  lacks even basic concepts  like IF-statements
-and loops.
+in some  ways the  ultimate in  *low-level* programming.  Out of  the box
+it  lacks  features like  dynamic  memory  management and  even  strings.
+In  fact, at  its  primitive  level it  lacks  even  basic concepts  like
+**IF**-statements and loops.
 
 Why then  would you want  to learn `FORTH`?  There are several  very good
 reasons. First and  foremost, `FORTH` is minimal. You really  can write a
@@ -68,7 +69,7 @@ with a  prompt where you could  start doing useful work.  The `FORTH` you
 have here isn't minimal  and uses a Linux process as  its 'base PC' (both
 for  the  purposes of  making  it  a  good  tutorial). It's  possible  to
 completely understand the system. Who  can say they completely understand
-how Linux works, or gcc?
+how Linux works, or `gcc`?
 
 Secondly `FORTH`  has a peculiar  bootstrapping property. By that  I mean
 that after writing a  little bit of assembly to talk  to the hardware and
@@ -108,8 +109,10 @@ here are some online references to read:
   * http://galileo.phys.virginia.edu/classes/551.jvn.fall01/primer.htm
   * http://wiki.laptop.org/go/Forth_Lessons
   * http://www.albany.net/~hello/simple.htm
-  * Here is another "Why FORTH?" essay: http://www.jwdt.com/~paysan/why-forth.html
-  * Discussion and criticism of this `FORTH` here: http://lambda-the-ultimate.org/node/2452
+  * Here is another "Why FORTH?" essay:
+    * http://www.jwdt.com/~paysan/why-forth.html
+  * Discussion and criticism of this `FORTH`:
+    * http://lambda-the-ultimate.org/node/2452
 
 ### x86 assembly directive
 
@@ -126,7 +129,7 @@ Some parts of this FORTH are also based on this IOCCC entry from 1992:
 
   * http://ftp.funet.fi/pub/doc/IOCCC/1992/buzzard.2.design.
 
-I was  very proud  when Sean  Barrett, the original  author of  the IOCCC
+I was  very proud when Sean  Barrett, the original author  of the `IOCCC`
 entry, commented in the LtU thread bout this `FORTH`:
 
   *    http://lambda-the-ultimate.org/node/2452#comment-36818
@@ -153,14 +156,18 @@ need to draw  lots of `ASCII`-art diagrams to explain  concepts, the best
 way to look at  this is using a window which uses a  fixed width font and
 is at least this wide:
 
- <------------------------------------------------------------------------------------------------------------------------>
+```
+<---------------------------------------------------------------------------->
+```
 
 Secondly make sure TABS are set  to 8 characters. The following should be
 a vertical line. If not, sort out your tabs.
 
+```
         |
         |
         |
+```
 
 Thirdly I assume that your screen is at least 50 characters high.
 
@@ -170,14 +177,14 @@ least 80 columns is assumed.
 ## ASSEMBLING
 
 If you want to  actually run this `FORTH`, rather than  just read it, you
-will need Linux on an i386. Linux because instead of programming directly
-to the  hardware on  a bare  PC which  I could  have done,  I went  for a
-simpler tutorial by assuming that the  'hardware' is a Linux process with
-a few  basic system calls  (read, write and  exit and that's  about all).
-i386 is needed because  I had to write the assembly  for a processor, and
-i386 is by far the most common. (Of  course when I say 'i386', any 32- or
-64-bit  x86  processor will  do.  I'm  compiling this  on  a  64-bit  AMD
-Opteron).
+will  need Linux  on  an  `i386`. Linux  because  instead of  programming
+directly to the hardware on a bare PC which I could have done, I went for
+a simpler  tutorial by assuming  that the  'hardware' is a  Linux process
+with a  few basic  system calls  (read, write and  exit and  that's about
+all).  `i386`  is needed  because  I  had to  write  the  assembly for  a
+processor, and `i386`  is by far the  most common. (Of course  when I say
+'i386', any 32- or 64-bit x86 processor  will do. I'm compiling this on a
+64-bit AMD Opteron).
 
 Again,  to assemble  this  you will  need **gcc**  and  **gas** (the  GNU
 assembler).
@@ -187,7 +194,7 @@ is:
 
 ```
     gcc -m32 -nostdlib -static -Wl,-Ttext,0 -Wl,--build-id=none \
-    -o jonesforth jonesforth.S
+        -o jonesforth jonesforth.S
 ```
 
 ... and to run it:
@@ -215,26 +222,26 @@ commands, you can do:
 read assembler to follow this tutorial).
 
 However if  you do want to  read the assembly  code here are a  few notes
-about gas (the GNU assembler):
+about `gas` (the GNU assembler):
 
-  * Register names are  prefixed with '**%**', so **%eax**  is the 32-bit
+  * Register names are  prefixed with '**%**',  so `%eax`  is  the 32-bit
     ('**e**')  `i386` accumulator.  The registers  available, many  which
     have special purpose, on `i386` are:
-    * **%eax** (accumulator)
-    * **%ebx** (base, data pointer)
-    * **%ecx** (counter)
-    * **%edx** (data for I/O, multiplication/division)
-    * **%esi** (source index, pointer for string/memory operations)
-    * **%edi** (data index, pointer for string/memory operations)
-    * **%ebp** (base pointer / stack frame)
-    * **%esp** (stack pointer)
+    * `%eax` (accumulator)
+    * `%ebx` (base, data pointer)
+    * `%ecx` (counter)
+    * `%edx` (data for I/O, multiplication/division)
+    * `%esi` (source index, pointer for string/memory operations)
+    * `%edi` (data index, pointer for string/memory operations)
+    * `%ebp` (base pointer / stack frame)
+    * `%esp` (stack pointer)
   * `add`, `mov`, etc. take arguments in the form `SRC, DEST`.
     * So `mov %eax, %ecx` moves `%eax` -> `%ecx`
   * Constants are  prefixed with '**$**',  and you mustn't forget  it! If
     you forget it then it causes a read from memory instead, so:
-    * `mov $2, %eax` moves number 2 into **%eax**
-    * `mov 2, %eax`    reads the 32-bit word from *memory address* `2`  into
-       **%eax** (ie. most likely a mistake)
+    * `mov $2, %eax` moves number 2 into `%eax`
+    * `mov 2,  %eax` reads the 32-bit word from *memory address* `2` into
+       `%eax` (ie. most likely a mistake)
   * `gas` has a funky syntax for local labels, where:
     * '**1f**' (etc.) means label '1:' "forwards"
     * '**1b**' (etc.) means label '1:' "backwards"
@@ -268,7 +275,7 @@ are stored  in a  dictionary which  is just a  linked list  of dictionary
 entries.
 
 ```
-<--- DICTIONARY ENTRY (HEADER) ------------->
+<--- DICTIONARY ENTRY (HEADER) ----------------->
 +---------------+--------------+----------------+------------+
 | LINK POINTER  | LENGTH/FLAGS | NAME           | DEFINITION |
 +---(4 bytes)---+---(1 byte)---+-(LENGTH bytes)-+------------+
@@ -280,7 +287,7 @@ the  previous word  in the  dictionary,  or, for  the first  word in  the
 dictionary it is  just a **NULL pointer**. Then  comes a **length/flags**
 byte.
 
-The length of the  word can be up to **31** characters  (5 bits used) and
+The length of the word can be up to **31** characters (`5` bits used) and
 the top three bits  are used for various flags which  I'll come to later.
 This is followed by the name  itself, and in this implementation the name
 is rounded  up to a multiple  of 4 bytes  by padding it with  zero bytes.
@@ -292,15 +299,21 @@ recently defined word, in other words, the head of this linked list.
 The instances of **DOUBLE** and **QUADRUPLE** might look like this:
 
 ```
-+---Link----+-LEN-+--------------NAME-------------+---DEFINITION---+
-| prev word |  6  | D | O | U | B | L | E | 0 | 0 |       ...      |
-+-----------+-----+------------------------padding+----------------+
-```
-
-```
-+---Link----+-LEN-+-----------------------NAME---------------------+DEF-+
-| prev word |  9  | Q | U | A | D | R | U | P | L | E | 0 | 0 | 0 | ... |
-+-----------+-----+--------------------------------------padding--+-----+
+  pointer to previous word
+   ^
+   |
++--|---+---+---+---+---+---+---+---+---+------------- - -
+| LINK | 6 | D | O | U | B | L | E | 0 | (definition ...)
++------+---+---+---+---+---+---+---+---+------------- - -
+   ^    len name                    pad
+   |
++--|---+---+---+---+---+---+---+---+---+---+---+---+---+------------- - -
+| LINK | 9 | Q | U | A | D | R | U | P | L | E | 0 | 0 | (definition ...)
++------+---+---+---+---+---+---+---+---+---+---+---+---+------------- - -
+   ^    len name                                padding
+   |
+   |
+ LATEST
 ```
 
 The `LATEST`  variable would be pointing  at **QUADRUPLE**, if it  is the
@@ -332,7 +345,7 @@ you  don't understand  this section,  then  you won't  "get" how  `FORTH`
 works, and that would be a failure on my part for not explaining it well.
 
 So if  after reading this  section a few  times you don't  understand it,
-please email me (rich@annexia.org).
+please email me (`rich@annexia.org`).
 
 Let's talk  first about  what "threaded code"  means. Imagine  a peculiar
 version  of `C`  where you  are only  allowed to  call functions  without
@@ -375,7 +388,7 @@ compressing this into just:
 ```
 
 On  a 16-bit  machine  like the  ones which  originally  ran `FORTH`  the
-savings are even greater - 33%.
+savings are even greater: 33%.
 
 [Historical note: If the execution  model that `FORTH` uses looks strange
 from the following paragraphs, then it was motivated entirely by the need
@@ -390,7 +403,7 @@ need to write an interpreter which takes each set of bytes and calls it.
 On an  `i386` machine  it turns  out that we  can write  this interpreter
 rather easily, in  just two assembly instructions which turn  into just 3
 bytes  of machine  code. Let's  store  the pointer  to the  next word  to
-execute in the **%esi** register:
+execute in the `%esi` register:
 
 ```
         08 00 00 00    <- We're executing this one now
@@ -400,8 +413,8 @@ execute in the **%esi** register:
 
 The all-important  `i386` instruction  is called  **LODSL** (or  in Intel
 manuals, **LODSW**). It  does two things. Firstly it reads  the memory at
-**%esi** into  the accumulator `(%eax)`. Secondly  it increments **%esi**
-by 4 bytes. So after **LODSL**, the situation now looks like this:
+`%esi` into the accumulator `(%eax)`.  Secondly it increments `%esi` by 4
+bytes. So after **LODSL**, the situation now looks like this:
 
 ```
         08 00 00 00    <- We're still executing this one
@@ -409,7 +422,7 @@ by 4 bytes. So after **LODSL**, the situation now looks like this:
 %esi -> 2C 00 00 00
 ```
 
-Now we just need to jump to the address in **%eax**. This is again just a
+Now we just need  to jump to the address in `%eax`. This  is again just a
 single x86 instruction  written `JMP *(%eax)`. And after  doing the jump,
 the situation looks like:
 
@@ -423,12 +436,13 @@ To make  this work, each subroutine  is followed by the  two instructions
 '`LODSL;  JMP  *(%eax)`'  which  literally  make the  jump  to  the  next
 subroutine.
 
-And that brings us to our first piece of actual code!  Well, it's a *macro*:
+And  that brings  us to  our first  piece of  actual code!  Well, it's  a
+*macro*:
 
 ### x86 assembly: `NEXT` macro
 
 ```
-/* NEXT macro. */
+// NEXT macro
     .macro NEXT
     lodsl
     jmp *(%eax)
@@ -445,8 +459,8 @@ The above describes what is known as *direct threaded code*.
 
 To sum up: We compress our function calls down to a list of addresses and
 use a somewhat  magical macro to act  as a "jump to next  function in the
-list".  We  also  use  one  register  (**%esi**) to  act  as  a  kind  of
-instruction pointer, pointing to the next function in the list.
+list". We also use one register (`%esi`)  to act as a kind of instruction
+pointer, pointing to the next function in the list.
 
 I'll just  give you a hint  of what is to  come by saying that  a `FORTH`
 definition such as:
@@ -472,11 +486,11 @@ want to just execute a list of functions written in assembly language. So
 function. In the direct threaded code, `QUADRUPLE` would look like:
 
 ```
-+------------------+
-| addr of DOUBLE   | ------------------> (assembly code to do the double)
-+------------------+                    NEXT
-%esi ->    | addr of DOUBLE   |
-+------------------+
+        +------------------+
+        | addr of DOUBLE  -------------> (assembly code to do the double)
+        +------------------+             NEXT
+%esi -> | addr of DOUBLE   |
+        +------------------+
 ```
 
 We can add an extra indirection to  allow us to run both words written in
@@ -493,31 +507,31 @@ Let's have  a look  at how  **QUADRUPLE** and  **DOUBLE** really  look in
 ```
 
 ```
-        +------------------+
-        | codeword         |           : DOUBLE DUP + ;
-        +------------------+
-        | addr of DOUBLE  ---------------> +------------------+
-        +------------------+               | codeword         |
-        | addr of DOUBLE   |           +------------------+
-        +------------------+              | addr of DUP   --------------> +------------------+
-        | addr of EXIT       |           +------------------+            | codeword      -------+
-        +------------------+       %esi -> | addr of +     --------+       +------------------+   |
-                           +------------------+       |       | assembly to    <-----+
-                           | addr of EXIT     |    |       | implement DUP    |
-                           +------------------+       |       |    ..          |
-                                       |       |    ..            |
-                                       |       | NEXT             |
-                                       |       +------------------+
-                                       |
-                                       +-----> +------------------+
-                                           | codeword      -------+
-                                           +------------------+   |
-                                           | assembly to   <------+
-                                           | implement +      |
-                                           |     ..            |
-                                           |     ..            |
-                                           | NEXT                |
-                                           +------------------+
++------------------+
+| codeword         |          : DOUBLE DUP + ;
++------------------+
+| addr of DOUBLE  ----------> +---------------+
++------------------+          | codeword      |
+| addr of DOUBLE   |          +---------------+
++------------------+          | addr of DUP -------> +---------------+
+| addr of EXIT     |          +---------------+      | codeword -------+
++------------------+  %esi -> | addr of +   ----+    +---------------+ |
+                              +---------------+ |    | assembly to <---+
+                              | addr of EXIT  | |    | implement DUP |
+                              +---------------+ |    |    ..         |
+                                                |    |    ..         |
+                                                |    | NEXT          |
+                                                |    +---------------+
+                                                |
+                                                +--> +---------------+
+                                                     | codeword -------+
+                                                     +---------------+ |
+                                                     | assembly to <---+
+                                                     | implement +   |
+                                                     |     ..        |
+                                                     |     ..        |
+                                                     | NEXT          |
+                                                     +---------------+
 ```
 
 This is the part where you  may need an extra cup of tea/coffee/favourite
@@ -534,42 +548,42 @@ codeword points to an interpreter function.
 I'll  show you  the interpreter  function shortly,  but let's  recall our
 indirect `JMP  *(%eax)` with  the "extra" brackets.  Take the  case where
 we're executing  **DOUBLE** as shown,  and **DUP** has been  called. Note
-that **%esi** is pointing to the address of **+**
+that `%esi` is pointing to the address of **+**
 
 The assembly code for **DUP** eventually does a **NEXT**.  That:
 
-  * reads the address of **+** into **%eax**
-    * **%eax** points to the codeword of **+**
-  * increments **%esi** by `4`
-  * jumps to the indirect **%eax**
+  * reads the address of **+** into `%eax`
+    * `%eax` points to the codeword of **+**
+  * increments `%esi` by `4`
+  * jumps to the indirect `%eax`
     * jumps to the address in the codeword of **+** (its assembly code)
 
 ```
-        +------------------+
-        | codeword         |
-        +------------------+
-        | addr of DOUBLE  ---------------> +------------------+
-        +------------------+               | codeword         |
-        | addr of DOUBLE   |           +------------------+
-        +------------------+              | addr of DUP   --------------> +------------------+
-        | addr of EXIT       |           +------------------+            | codeword      -------+
-        +------------------+              | addr of +     --------+       +------------------+   |
-                           +------------------+       |       | assembly to    <-----+
-                       %esi -> | addr of EXIT     |    |       | implement DUP    |
-                           +------------------+       |       |    ..          |
-                                       |       |    ..            |
-                                       |       | NEXT             |
-                                       |       +------------------+
-                                       |
-                                       +-----> +------------------+
-                                           | codeword      -------+
-                                           +------------------+   |
-                                    now we're  | assembly to    <-----+
-                                    executing  | implement +      |
-                                    this       |     ..            |
-                                    function   |     ..            |
-                                           | NEXT                |
-                                           +------------------+
++----------------+
+| codeword       |
++----------------+
+| addr of DOUBLE --------> +--------------+
++----------------+         | codeword     |
+| addr of DOUBLE |         +--------------+
++----------------+         | addr of DUP ----------> +---------------+
+| addr of EXIT   |         +--------------+          | codeword -------+
++----------------+         | addr of +   ------+     +---------------+ |
+                           +--------------+    |     | assembly to  <--+
+                   %esi -> | addr of EXIT |    |     | implement DUP |
+                           +--------------+    |     |    ..         |
+                                               |     |    ..         |
+                                               |     | NEXT          |
+                                               |     +---------------+
+                                               |
+                                               +---> +-------------+
+                                                     | codeword -------+
+                                                     +-------------+   |
+                                          now we're  | assembly to <---+
+                                          executing  | implement + |
+                                          this       |     ..      |
+                                          function   |     ..      |
+                                                     | NEXT        |
+                                                     +-------------+
 ```
 
 So I hope  that I've convinced you that **NEXT**  does roughly what you'd
@@ -582,8 +596,8 @@ My list of four things are:
 
   * What does "**EXIT**" do?
   * which is related to the above is "how do you call into a function?"
-    * ie. how does **%esi** start off pointing at part of  **QUADRUPLE**,
-      but then point at part of **DOUBLE**.
+    * ie. how does `%esi` start off pointing at part of `QUADRUPLE`,  but
+      then point at part of `DOUBLE`.
   * What goes in the codeword for the words which are written in `FORTH?`
   * How do you compile a function which does anything except  call  other
     functions? ie. one which contains a number like `: DOUBLE 2 * ;` ?
@@ -597,17 +611,17 @@ called: the interpreter and the return stack.
 Words which  are defined  in `FORTH`  need a codeword  which points  to a
 little bit of code to give them a "helping hand" in life. They don't need
 much, but  they do need  what is known  as an "interpreter",  although it
-doesn't really  "interpret" in  the same way  that, say,  `Java` bytecode
+doesn't really  "interpret" in  the same way  that, say,  `Java bytecode`
 used to be interpreted (ie. slowly).  This interpreter just sets up a few
 machine registers so  that the word can then execute  at full speed using
 the indirect threaded model above.
 
 One of the things that needs to happen when `QUADRUPLE` calls `DOUBLE` is
-that we  save the old **%esi**  (our "instruction pointer") and  create a
-new one pointing to  the first word in `DOUBLE`. Because  we will need to
-restore the old **%esi** at the end of `DOUBLE` (this is, after all, like
-a  *function  call*),  we  will  need a  stack  to  store  these  "return
-addresses" (old values of **%esi**).
+that we save the old `%esi`  (our "instruction pointer") and create a new
+one  pointing to  the first  word in  `DOUBLE`. Because  we will  need to
+restore the old `%esi` at the end of `DOUBLE` (this is, after all, like a
+*function call*), we will need a  stack to store these "return addresses"
+(old values of `%esi`).
 
 As you  will have seen in  the background documentation, `FORTH`  has two
 stacks, an ordinary  stack for parameters, and a return  stack which is a
@@ -615,19 +629,19 @@ bit more  mysterious. But  our return  stack is just  the stack  I talked
 about in  the previous paragraph, used  to save %esi when  calling from a
 `FORTH` word into another `FORTH` word.
 
-In this `FORTH`,  we are using the normal *stack  pointer* (**%esp**) for
-the  parameter  stack. We  will  use  the  i386's "other"  stack  pointer
-(**%ebp**, usually called the "*frame pointer*") for our return stack.
+In this `FORTH`, we are using the normal *stack pointer* (`%esp`) for the
+parameter stack.  We will use  the i386's "other" stack  pointer (`%ebp`,
+usually called the "*frame pointer*") for our return stack.
 
-I've got two macros which just wrap  up the details of using **%ebp** for
-the return stack.  You use them as for example  "**PUSHRSP %eax**" (`push %eax`
-on  the return  stack) or  "**POPRSP %ebx**"  (pop top  of return  stack into
-**%ebx**).
+I've got two  macros which just wrap  up the details of  using `%ebp` for
+the return stack.  You use them as for example  "**PUSHRSP %eax**" (`push
+%eax` on the return stack) or  "**POPRSP %ebx**" (pop top of return stack
+into `%ebx`).
 
 ### x86 assembly macros for `PUSHRSP` and `POPRSP`
 
 ```
-/* Macros to deal with the return stack. */
+// Macros to deal with the return stack
     .macro PUSHRSP reg
     lea -4(%ebp),%ebp    // push reg on to return stack
     movl \reg,(%ebp)
@@ -646,11 +660,11 @@ means "DO COLON"  because all `FORTH` definitions start with  a colon, as
 in: `: DOUBLE DUP + ;`
 
 The "interpreter" (it's not really "interpreting") just needs to push the
-old **%esi**  on the  stack and  set **%esi**  to the  first word  in the
+old  `%esi`  on the  stack  and  set `%esi`  to  the  first word  in  the
 definition. Remember that we jumped  to the function using `JMP *(%eax)`?
-Well a  consequence of  that is that  conveniently **%eax**  contains the
+Well  a consequence  of that  is  that conveniently  `%eax` contains  the
 address of this codeword, so just by  adding `4` to it we get the address
-of the first  data word. Finally after setting up  **%esi**, it just does
+of the  first data word.  Finally after setting  up `%esi`, it  just does
 `NEXT` which causes that first word to run.
 
 ### x86 assembly routine for `DOCOL`
@@ -683,9 +697,9 @@ jumping from `QUADRUPLE` into `DOUBLE`:
 ```
 
 First, the  call to  `DOUBLE` calls `DOCOL`  (the codeword  of `DOUBLE`).
-`DOCOL`  does this:  It  pushes the  old **%esi**  on  the return  stack.
-**%eax** points to the codeword of `DOUBLE`,  so we just add `4` on to it
-to get our new **%esi**:
+`DOCOL` does this:  It pushes the old `%esi` on  the return stack. `%eax`
+points to the  codeword of `DOUBLE`, so we  just add `4` on to  it to get
+our new `%esi`:
 
 ```
         QUADRUPLE:
@@ -701,7 +715,7 @@ stack points ->    | addr of DOUBLE   |       + 4 =   +------------------+
 ```
 
 Then  we do  `NEXT`,  and because  of  the magic  of  threaded code  that
-increments **%esi** again and calls `DUP`.
+increments `%esi` again and calls `DUP`.
 
 Well, it seems to work.
 
@@ -1262,7 +1276,7 @@ strange convention so this `FORTH` breaks  it and returns the more normal
 
 Time  to talk  about what  happens  when we  `EXIT` a  function. In  this
 diagram `QUADRUPLE`  has called `DOUBLE`,  and `DOUBLE` is about  to exit
-(look at where **%esi** is pointing):
+(look at where `%esi` is pointing):
 
 ```
         QUADRUPLE
@@ -1288,8 +1302,8 @@ code is executed:
     POPRSP %esi        // pop return stack into %esi
     NEXT
 
-`EXIT` gets  the old **%esi**  which we saved  from before on  the return
-stack, and puts it in **%esi**.
+`EXIT`  gets the  old `%esi`  which we  saved from  before on  the return
+stack, and puts it in `%esi`.
 
 So after this (but just before `NEXT`) we get:
 
@@ -1337,8 +1351,8 @@ single literal that you wanted to use.
 ```
 
 `LIT` is executed in the normal way,  but what it does next is definitely
-not normal.  It looks at **%esi**  (which now points to  the number `2`),
-grabs it, pushes  it on the stack, then manipulates  **%esi** in order to
+not normal.  It looks  at `%esi`  (which now points  to the  number `2`),
+grabs it,  pushes it on  the stack, then  manipulates `%esi` in  order to
 skip the number as if it had never been there.
 
 What's neat is that the whole  grab/manipulate can be done using a single
@@ -1575,7 +1589,7 @@ The built-in constants are:
 ## RETURN STACK
 
 These  words allow  you  to  access the  return  stack.  Recall that  the
-register **%ebp** always points to the top of the return stack.
+register `%ebp` always points to the top of the return stack.
 
 ### x86 assembly: implementing `>R`
 
@@ -1623,14 +1637,14 @@ register **%ebp** always points to the top of the return stack.
 
 These functions allow you to  manipulate the parameter stack. Recall that
 Linux sets  up the  parameter stack  for us, and  it is  accessed through
-**%esp**.
+`%esp`.
 
 ### x86 assembly: implementing `DSP@`
 
 ```
     defcode "DSP@",4,,DSPFETCH
-    mov %esp,%eax
-    push %eax
+    mov     %esp, %eax
+    push    %eax
     NEXT
 ```
 
@@ -1638,7 +1652,7 @@ Linux sets  up the  parameter stack  for us, and  it is  accessed through
 
 ```
     defcode "DSP!",4,,DSPSTORE
-    pop %esp
+    pop     %esp
     NEXT
 ```
 
