@@ -36,6 +36,9 @@ To build:
   * [INPUT AND OUTPUT](#INPUT-AND-OUTPUTSTACK)
   * [DICTIONARY LOOK UPS](#DICTIONARY-LOOK-UPS)
   * [COMPILING](#COMPILING)
+  * [EXTENDING THE COMPILER](#EXTENDING-THE-COMPILER)
+  * [BRANCHING](#BRANCHING)
+  * [LITERAL STRINGS](#LITERAL-STRINGS)
 
 ## INTRODUCTION
 
@@ -2302,29 +2305,33 @@ data).
     NEXT
 ```
 
-/*
-    Because I want to define : (COLON) in FORTH, not assembler, we need a few more FORTH words
-    to use.
+Because I want to define `:` (COLON) in `FORTH`, not assembler, we need a
+few more `FORTH` words to use.
 
-    The first is , (COMMA) which is a standard FORTH word which appends a 32 bit integer to the user
-    memory pointed to by HERE, and adds 4 to HERE.  So the action of , (COMMA) is:
+The first is `,` (COMMA) which is a standard `FORTH` word which appends a
+32-bit integer to the  user memory pointed to by `HERE`,  and adds `4` to
+`HERE`. So the action of `,` (COMMA) is:
 
+```
                             previous value of HERE
                                  |
                                  V
-    +---------+---+---+---+---+---+---+---+---+-- - - - - --+------------+
-    | LINK    | 6 | D | O | U | B | L | E | 0 |             |  <data>    |
-    +---------+---+---+---+---+---+---+---+---+-- - - - - --+------------+
-                   len                         pad                      ^
-                                          |
-                                    new value of HERE
+    +---------+---+---+---+---+---+---+---+---+-- - - - - --+-----------+
+    | LINK    | 6 | D | O | U | B | L | E | 0 |             |  <data>   |
+    +---------+---+---+---+---+---+---+---+---+-- - - - - --+-----------+
+               len                         pad                    ^
+                                                                  |
+                                                    new value of HERE
+```
 
-    and <data> is whatever 32 bit integer was at the top of the stack.
+... and `<data>` is whatever 32-bit integer was at the top of the stack.
 
-    , (COMMA) is quite a fundamental operation when compiling.  It is used to append codewords
-    to the current word that is being compiled.
-*/
+`,` (COMMA) is  quite a fundamental operation when compiling.  It is used
+to append codewords to the current word that is being compiled.
 
+### x86 assembly: implementing `,` (COMMA)
+
+```
     defcode ",",1,,COMMA
     pop %eax        // Code pointer to store.
     call _COMMA
@@ -2334,26 +2341,34 @@ _COMMA:
     stosl            // Store it.
     movl %edi,var_HERE    // Update HERE (incremented)
     ret
+```
 
-/*
-    Our definitions of : (COLON) and ; (SEMICOLON) will need to switch to and from compile mode.
+Our definitions of  `:` (**COLON**) and `;` (**SEMICOLON**)  will need to
+switch to and from *compile mode*.
 
-    Immediate mode vs. compile mode is stored in the global variable STATE, and by updating this
-    variable we can switch between the two modes.
+**Immediate** mode vs. **compile** mode  is stored in the global variable
+`STATE`, and  by updating  this variable  we can  switch between  the two
+modes.
 
-    For various reasons which may become apparent later, FORTH defines two standard words called
-    [ and ] (LBRAC and RBRAC) which switch between modes:
+For various reasons which may  become apparent later, `FORTH` defines two
+standard words called `[` and  `]` (**LBRAC** and **RBRAC**) which switch
+between modes:
 
-    Word    Assembler    Action        Effect
-    [    LBRAC        STATE := 0    Switch to immediate mode.
-    ]    RBRAC        STATE := 1    Switch to compile mode.
+| Word | Assembler | Action       | Effect                   |
+| ---- | --------- | ------------ | ------------------------ |
+| `[`  | **LBRAC** | `STATE := 0` | Switch to immediate mode |
+| `]`  | **RBRAC** | `STATE := 1` | Switch to compile mode   |
 
-    [ (LBRAC) is an IMMEDIATE word.  The reason is as follows: If we are in compile mode and the
-    interpreter saw [ then it would compile it rather than running it.  We would never be able to
-    switch back to immediate mode!  So we flag the word as IMMEDIATE so that even in compile mode
-    the word runs immediately, switching us back to immediate mode.
-*/
+`[` (**LBRAC**) is  an `IMMEDIATE` word. The reason is  as follows: If we
+are in compile mode and the interpreter  saw `[` then it would compile it
+rather  than  running it.  We  would  never be  able  to  switch back  to
+*immediate mode*!  So we  flag the  word as `IMMEDIATE`  so that  even in
+*compile  mode*  the word  runs  **immediately**,  switching us  back  to
+*immediate mode*.
 
+### x86 assembly: implementing `[` (LBRAC)
+
+```
     defcode "[",1,F_IMMED,LBRAC
     xor %eax,%eax
     movl %eax,var_STATE    // Set STATE to 0.
@@ -2362,202 +2377,261 @@ _COMMA:
     defcode "]",1,,RBRAC
     movl $1,var_STATE    // Set STATE to 1.
     NEXT
+```
 
-/*
-    Now we can define : (COLON) using CREATE.  It just calls CREATE, appends DOCOL (the codeword), sets
-    the word HIDDEN and goes into compile mode.
-*/
+### x86 assembly: implementing `:` (COLON)
 
+Now we can define `:` (**COLON**) using `CREATE`. It just calls `CREATE`,
+appends  `DOCOL` (the  codeword), sets  the word  `HIDDEN` and  goes into
+*compile mode*.
+
+```
     defword ":",1,,COLON
-    .int WORD        // Get the name of the new word
-    .int CREATE        // CREATE the dictionary entry / header
-    .int LIT, DOCOL, COMMA    // Append DOCOL  (the codeword).
-    .int LATEST, FETCH, HIDDEN // Make the word hidden (see below for definition).
-    .int RBRAC        // Go into compile mode.
-    .int EXIT        // Return from the function.
+    .int WORD                  // Get the name of the new word
+    .int CREATE                // CREATE the dictionary entry / header
+    .int LIT, DOCOL, COMMA     // Append DOCOL  (the codeword)
+    .int LATEST, FETCH, HIDDEN // Make the word hidden (see below)
+    .int RBRAC                 // Go into compile mode.
+    .int EXIT                  // Return from the function.
+```
 
-/*
-    ; (SEMICOLON) is also elegantly simple.  Notice the F_IMMED flag.
-*/
+### x86 assembly: implementing `;` (SEMICOLON)
 
+`;` (**SEMICOLON**) is also elegantly simple. Notice the `F_IMMED` flag.
+
+```
     defword ";",1,F_IMMED,SEMICOLON
-    .int LIT, EXIT, COMMA    // Append EXIT (so the word will return).
-    .int LATEST, FETCH, HIDDEN // Toggle hidden flag -- unhide the word (see below for definition).
-    .int LBRAC        // Go back to IMMEDIATE mode.
-    .int EXIT        // Return from the function.
+    .int LIT, EXIT, COMMA      // Append EXIT (so the word will return)
+    .int LATEST, FETCH, HIDDEN // Toggle hidden flag -- unhide the word
+                               // (see below for definition)
+    .int LBRAC                 // Go back to IMMEDIATE mode.
+    .int EXIT                  // Return from the function.
+```
 
-/*
-    EXTENDING THE COMPILER ----------------------------------------------------------------------
+## EXTENDING THE COMPILER
 
-    Words flagged with IMMEDIATE (F_IMMED) aren't just for the FORTH compiler to use.  You can define
-    your own IMMEDIATE words too, and this is a crucial aspect when extending basic FORTH, because
-    it allows you in effect to extend the compiler itself.  Does gcc let you do that?
+Words flagged with `IMMEDIATE` (**F_IMMED**)  aren't just for the `FORTH`
+compiler to use. You can define  your own `IMMEDIATE` words too, and this
+is a crucial  aspect when extending basic `FORTH`, because  it allows you
+in effect to extend the compiler itself. Does `gcc` let you do that?
 
-    Standard FORTH words like IF, WHILE, ." and so on are all written as extensions to the basic
-    compiler, and are all IMMEDIATE words.
+Standard `FORTH` words like `IF`, `WHILE`, `."` and so on are all written
+as extensions to the basic compiler, and are all `IMMEDIATE` words.
 
-    The IMMEDIATE word toggles the F_IMMED (IMMEDIATE flag) on the most recently defined word,
-    or on the current word if you call it in the middle of a definition.
+The `IMMEDIATE`  word toggles the  **F_IMMED** (`IMMEDIATE flag`)  on the
+most recently defined word, or on the  current word if you call it in the
+middle of a definition.
 
-    Typical usage is:
+Typical usage is:
 
+```
     : MYIMMEDWORD IMMEDIATE
         ...definition...
     ;
+```
 
-    but some FORTH programmers write this instead:
+... but some `FORTH` programmers write this instead:
 
+```
     : MYIMMEDWORD
         ...definition...
     ; IMMEDIATE
+```
 
-    The two usages are equivalent, to a first approximation.
-*/
+The two usages are equivalent, to a first approximation.
 
+### x86 assembly: implementing `IMMEDIATE` word to set `F_IMMED` flag
+
+```
     defcode "IMMEDIATE",9,F_IMMED,IMMEDIATE
-    movl var_LATEST,%edi    // LATEST word.
-    addl $4,%edi        // Point to name/flags byte.
-    xorb $F_IMMED,(%edi)    // Toggle the IMMED bit.
+    movl var_LATEST, %edi    // LATEST word.
+    addl $4,         %edi    // Point to name/flags byte.
+    xorb $F_IMMED,   (%edi)  // Toggle the IMMED bit.
     NEXT
+```
 
-/*
-    'addr HIDDEN' toggles the hidden flag (F_HIDDEN) of the word defined at addr.  To hide the
-    most recently defined word (used above in : and ; definitions) you would do:
+'`addr  HIDDEN`'  toggles the  hidden  flag  (**F_HIDDEN**) of  the  word
+defined at `addr`. To hide the  most recently defined word (used above in
+`:` and `;` definitions) you would do:
 
-        LATEST @ HIDDEN
+```
+    LATEST @ HIDDEN
+```
 
-    'HIDE word' toggles the flag on a named 'word'.
+'`HIDE word`' toggles the flag on a named 'word'.
 
-    Setting this flag stops the word from being found by FIND, and so can be used to make 'private'
-    words.  For example, to break up a large word into smaller parts you might do:
+Setting this flag stops  the word from being found by  `FIND`, and so can
+be used to  make 'private' words. For  example, to break up  a large word
+into smaller parts you might do:
 
-        : SUB1 ... subword ... ;
-        : SUB2 ... subword ... ;
-        : SUB3 ... subword ... ;
-        : MAIN ... defined in terms of SUB1, SUB2, SUB3 ... ;
-        HIDE SUB1
-        HIDE SUB2
-        HIDE SUB3
+```
+    : SUB1 ... subword ... ;
+    : SUB2 ... subword ... ;
+    : SUB3 ... subword ... ;
+    : MAIN ... defined in terms of SUB1, SUB2, SUB3 ... ;
+    HIDE SUB1
+    HIDE SUB2
+    HIDE SUB3
+```
 
-    After this, only MAIN is 'exported' or seen by the rest of the program.
-*/
+After this, only `MAIN` is 'exported' or seen by the rest of the program.
 
+### x86 assembly: implementing `HIDDEN` to set `F_HIDDEN` flag
+
+```
     defcode "HIDDEN",6,,HIDDEN
-    pop %edi        // Dictionary entry.
-    addl $4,%edi        // Point to name/flags byte.
-    xorb $F_HIDDEN,(%edi)    // Toggle the HIDDEN bit.
+    pop  %edi               // Dictionary entry
+    addl $4,        %edi    // Point to name/flags byte
+    xorb $F_HIDDEN, (%edi)  // Toggle the HIDDEN bit
     NEXT
+```
 
+### x86 assembly: implementing `HIDE` to hide an existing word
+
+```
     defword "HIDE",4,,HIDE
-    .int WORD        // Get the word (after HIDE).
-    .int FIND        // Look up in the dictionary.
-    .int HIDDEN        // Set F_HIDDEN flag.
-    .int EXIT        // Return.
+    .int WORD    // Get the word (after HIDE).
+    .int FIND    // Look up in the dictionary.
+    .int HIDDEN  // Set F_HIDDEN flag.
+    .int EXIT    // Return.
+```
 
-/*
-    ' (TICK) is a standard FORTH word which returns the codeword pointer of the next word.
+`'`  (**TICK**) is  a standard  `FORTH` word  which returns  the codeword
+pointer of the next word.
 
-    The common usage is:
+The common usage is:
 
+```
     ' FOO ,
+```
 
-    which appends the codeword of FOO to the current word we are defining (this only works in compiled code).
+...  which appends  the codeword  of  *FOO* to  the current  word we  are
+defining (this only works in *compiled* code).
 
-    You tend to use ' in IMMEDIATE words.  For example an alternate (and rather useless) way to define
-    a literal 2 might be:
+You tend to use `'` in **IMMEDIATE** words. For example an alternate (and
+rather useless) way to define a literal `2` might be:
 
+```
     : LIT2 IMMEDIATE
-        ' LIT ,        \ Appends LIT to the currently-being-defined word
-        2 ,        \ Appends the number 2 to the currently-being-defined word
+        ' LIT ,  \ Appends LIT to the currently-being-defined word
+        2 ,      \ Appends the number 2 to the currently-being-defined word
     ;
+```
 
-    So you could do:
+So you could do:
 
+```
     : DOUBLE LIT2 * ;
+```
 
-    (If you don't understand how LIT2 works, then you should review the material about compiling words
-    and immediate mode).
+(If you  don't understand how  `LIT2` works,  then you should  review the
+material about compiling words and immediate mode).
 
-    This definition of ' uses a cheat which I copied from buzzard92.  As a result it only works in
-    compiled code.  It is possible to write a version of ' based on WORD, FIND, >CFA which works in
-    immediate mode too.
-*/
+### x86 assembly: implementing `'` (TICK)
+
+This definition of `'`  uses a cheat which I copied  from buzzard92. As a
+result it only works in compiled code.  It is possible to write a version
+of `'` based on `WORD`, `FIND`, `>CFA` which works in immediate mode too.
+
+```
     defcode "'",1,,TICK
-    lodsl            // Get the address of the next word and skip it.
-    pushl %eax        // Push it on the stack.
+    lodsl       // Get the address of the next word and skip it.
+    pushl %eax  // Push it on the stack.
     NEXT
+```
 
-/*
-    BRANCHING ----------------------------------------------------------------------
+## BRANCHING
 
-    It turns out that all you need in order to define looping constructs, IF-statements, etc.
-    are two primitives.
+It turns  out that all  you need in  order to define  looping constructs,
+**IF**-statements, etc. are two primitives.
 
-    BRANCH is an unconditional branch. 0BRANCH is a conditional branch (it only branches if the
-    top of stack is zero).
+`BRANCH`  is  an  *unconditional  branch*. `0BRANCH`  is  a  *conditional
+branch* (it only branches if the top of stack is zero).
 
-    The diagram below shows how BRANCH works in some imaginary compiled word.  When BRANCH executes,
-    %esi starts by pointing to the offset field (compare to LIT above):
+The diagram  below shows  how `BRANCH` works  in some  imaginary compiled
+word. When  `BRANCH` executes,  `%esi` starts by  pointing to  the offset
+field (compare to `LIT` above):
 
-    +---------------------+-------+---- - - ---+------------+------------+---- - - - ----+------------+
-    | (Dictionary header) | DOCOL |            | BRANCH     | offset     | (skipped)     | word       |
-    +---------------------+-------+---- - - ---+------------+-----|------+---- - - - ----+------------+
+```
+    +---------------------+-------+- - - -+--------+--------+---- - - - +------+
+    | (Dictionary header) | DOCOL |       | BRANCH | offset | (skipped) | word |
+    +---------------------+-------+- - - -+--------+---|----+---- - - - +------+
                                    ^  |                  ^
                                    |  |                  |
                                    |  +-----------------------+
                                   %esi added to offset
+```
 
-    The offset is added to %esi to make the new %esi, and the result is that when NEXT runs, execution
-    continues at the branch target.  Negative offsets work as expected.
+The offset is added  to `%esi` to make the new `%esi`,  and the result is
+that when `NEXT` runs, execution continues at the branch target. Negative
+offsets work as expected.
 
-    0BRANCH is the same except the branch happens conditionally.
+`0BRANCH` is the same except the branch happens conditionally.
 
-    Now standard FORTH words such as IF, THEN, ELSE, WHILE, REPEAT, etc. can be implemented entirely
-    in FORTH.  They are IMMEDIATE words which append various combinations of BRANCH or 0BRANCH
-    into the word currently being compiled.
+Now,  standard  `FORTH` words  such  as  `IF`, `THEN`,  `ELSE`,  `WHILE`,
+`REPEAT`,  etc.  can  be  implemented   entirely  in  `FORTH`.  They  are
+`IMMEDIATE`  words  which  append  various combinations  of  `BRANCH`  or
+`0BRANCH` into the word currently being compiled.
 
-    As an example, code written like this:
+As an example, code written like this:
 
-        condition-code IF true-part THEN rest-code
+```
+    condition-code IF true-part THEN rest-code
+```
 
-    compiles to:
+... compiles to:
 
-        condition-code 0BRANCH OFFSET true-part rest-code
-                      |        ^
-                      |        |
-                      +-------------+
-*/
+```
+    condition-code 0BRANCH OFFSET true-part rest-code
+                  |        ^
+                  |        |
+                  +-------------+
+```
 
+### x86 assembly: implementing `BRANCH`
+
+```
     defcode "BRANCH",6,,BRANCH
-    add (%esi),%esi        // add the offset to the instruction pointer
+    add  (%esi), %esi        // add the offset to the instruction pointer
     NEXT
+```
 
+### x86 assembly: implementing `0BRANCH`
+
+```
     defcode "0BRANCH",7,,ZBRANCH
-    pop %eax
-    test %eax,%eax        // top of stack is zero?
-    jz code_BRANCH        // if so, jump back to the branch function above
-    lodsl            // otherwise we need to skip the offset
+    pop   %eax
+    test  %eax, %eax   // top of stack is zero?
+    jz    code_BRANCH  // if so, jump back to the branch function above
+    lodsl              // otherwise we need to skip the offset
     NEXT
+```
 
-/*
-    LITERAL STRINGS ----------------------------------------------------------------------
+## LITERAL STRINGS
 
-    LITSTRING is a primitive used to implement the ." and S" operators (which are written in
-    FORTH).  See the definition of those operators later.
+### x86 assembly: implementing `LITSTRING`
 
-    TELL just prints a string.  It's more efficient to define this in assembly because we
-    can make it a single Linux syscall.
-*/
+`LITSTRING` is a primitive used to  implement the `."` and `S"` operators
+(which are  written in  `FORTH`). See the  definition of  those operators
+later.
 
+```
     defcode "LITSTRING",9,,LITSTRING
-    lodsl            // get the length of the string
-    push %esi        // push the address of the start of the string
-    push %eax        // push it on the stack
-    addl %eax,%esi        // skip past the string
-     addl $3,%esi        // but round up to next 4 byte boundary
-    andl $~3,%esi
+    lodsl             // get the length of the string
+    push  %esi        // push the address of the start of the string
+    push  %eax        // push it on the stack
+    addl  %eax, %esi  // skip past the string
+    addl  $3,   %esi  // but round up to next 4 byte boundary
+    andl  $~3,  %esi
     NEXT
+```
 
+### x86 assembly: implementing `TELL`
+
+`TELL`  just prints  a  string. It's  more efficient  to  define this  in
+assembly because we can make it a single Linux syscall.
+
+```
     defcode "TELL",4,,TELL
     mov $1,%ebx        // 1st param: stdout
     pop %edx        // 3rd param: length of string
@@ -2565,6 +2639,7 @@ _COMMA:
     mov $__NR_write,%eax    // write syscall
     int $0x80
     NEXT
+```
 
 /*
     QUIT AND INTERPRET ----------------------------------------------------------------------
