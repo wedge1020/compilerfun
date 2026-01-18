@@ -1,4 +1,4 @@
-# v32cc
+# Compiler Fun
 
 Exploring compiler construction.
 
